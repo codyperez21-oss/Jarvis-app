@@ -69,6 +69,25 @@
 
   .loading-note, .error-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); padding:24px 0; text-align:center; }
   .error-note { color:#d94040; }
+
+  .edit-btn { margin-top:16px; padding-top:16px; border-top:1px solid var(--border); font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gray); text-align:center; cursor:pointer; user-select:none; transition:color 0.2s; }
+  .edit-btn:hover { color:var(--grape); }
+
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:flex-end; justify-content:center; z-index:100; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:var(--card); border:1px solid var(--border); border-radius:14px 14px 0 0; padding:24px 20px 28px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; }
+  .modal-title { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.02em; color:var(--grape); margin-bottom:18px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-field { margin-bottom:14px; }
+  .form-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin-bottom:6px; display:block; }
+  .form-input, .form-select { width:100%; background:#101010; border:1px solid var(--border); border-radius:6px; padding:10px 11px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13.5px; }
+  .form-input:focus, .form-select:focus { outline:none; border-color:var(--grape-dim); }
+  textarea.form-input { resize:vertical; min-height:60px; font-family:'DM Sans',sans-serif; }
+  .modal-actions { display:flex; gap:10px; margin-top:8px; }
+  .modal-btn { flex:1; padding:13px 0; border-radius:8px; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--gray); }
+  .modal-btn.save { background:var(--grape); border-color:var(--grape); color:#fff; }
+  .modal-btn.save:disabled { opacity:0.5; cursor:default; }
+  .modal-error { color:#d94040; font-family:'DM Mono',monospace; font-size:11px; margin-top:12px; display:none; }
 </style>
 </head>
 <body>
@@ -91,9 +110,63 @@
   <div id="clinicList"></div>
 </main>
 
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <div class="modal-title">Edit Clinic</div>
+    <input type="hidden" id="editClinicId">
+    <div class="form-field">
+      <label class="form-label">Clinic Name</label>
+      <input type="text" class="form-input" id="editName">
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Contact Name</label>
+        <input type="text" class="form-input" id="editContact">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="editStatus">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Phone</label>
+        <input type="text" class="form-input" id="editPhone">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="editEmail">
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Address</label>
+      <input type="text" class="form-input" id="editAddress">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Scope of Practice</label>
+      <textarea class="form-input" id="editScope"></textarea>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Reach-Out Cadence (days)</label>
+      <input type="number" class="form-input" id="editCadence" min="1">
+    </div>
+    <div class="modal-error" id="editError"></div>
+    <div class="modal-actions">
+      <div class="modal-btn" id="editCancelBtn" onclick="closeEditModal()">Cancel</div>
+      <div class="modal-btn save" id="editSaveBtn" onclick="saveClinicEdit()">Save Changes</div>
+    </div>
+  </div>
+</div>
+
 <script>
 const CLINICS_URL = "https://affable-chachalaca.pikapod.net/webhook/clinics-data";
+const CLINIC_EDIT_URL = "https://affable-chachalaca.pikapod.net/webhook/clinic-edit";
 const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+
+let clinicsData = [];
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -141,6 +214,7 @@ function renderClinic(c, idx) {
         </div>
         <div class="touchpoints-label">Reach-Out History — ${c.touchpoints.length} logged</div>
         ${c.touchpoints.length ? renderTouchpointHistory(c.touchpoints, idx) : '<div class="no-touchpoints">No reach-outs logged yet</div>'}
+        <div class="edit-btn" onclick="openEditModal(${idx})">Edit Clinic</div>
       </div>
     </div>
   `;
@@ -184,6 +258,72 @@ function toggleClinic(idx) {
   document.getElementById(`clinic-${idx}`).classList.toggle('open');
 }
 
+function openEditModal(idx) {
+  const c = clinicsData[idx];
+  if (!c) return;
+  document.getElementById('editClinicId').value = c.id;
+  document.getElementById('editName').value = c.name || '';
+  document.getElementById('editContact').value = c.contact_name || '';
+  document.getElementById('editPhone').value = c.phone || '';
+  document.getElementById('editEmail').value = c.email || '';
+  document.getElementById('editAddress').value = c.address || '';
+  document.getElementById('editScope').value = c.scope_of_practice || '';
+  document.getElementById('editCadence').value = c.cadence_days || 14;
+  document.getElementById('editStatus').value = c.status || 'active';
+  document.getElementById('editError').style.display = 'none';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+}
+
+async function saveClinicEdit() {
+  const saveBtn = document.getElementById('editSaveBtn');
+  const errorEl = document.getElementById('editError');
+  errorEl.style.display = 'none';
+
+  const name = document.getElementById('editName').value.trim();
+  if (!name) {
+    errorEl.textContent = 'Clinic name is required';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const cadenceRaw = parseInt(document.getElementById('editCadence').value, 10);
+  const payload = {
+    id: document.getElementById('editClinicId').value,
+    name: name,
+    contact_name: document.getElementById('editContact').value.trim() || null,
+    phone: document.getElementById('editPhone').value.trim() || null,
+    email: document.getElementById('editEmail').value.trim() || null,
+    address: document.getElementById('editAddress').value.trim() || null,
+    scope_of_practice: document.getElementById('editScope').value.trim() || null,
+    cadence_days: Number.isFinite(cadenceRaw) && cadenceRaw > 0 ? cadenceRaw : 14,
+    status: document.getElementById('editStatus').value
+  };
+
+  saveBtn.textContent = 'Saving…';
+  saveBtn.setAttribute('disabled', 'true');
+
+  try {
+    const response = await fetch(CLINIC_EDIT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    closeEditModal();
+    await loadClinics();
+  } catch (err) {
+    errorEl.textContent = "Couldn't save: " + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    saveBtn.textContent = 'Save Changes';
+    saveBtn.removeAttribute('disabled');
+  }
+}
+
 async function loadClinics() {
   const listEl = document.getElementById('clinicList');
   try {
@@ -194,10 +334,12 @@ async function loadClinics() {
     document.getElementById('clinicCount').textContent = `${data.clinics.length} active clinic${data.clinics.length !== 1 ? 's' : ''}`;
 
     if (!data.clinics || data.clinics.length === 0) {
+      clinicsData = [];
       listEl.innerHTML = '<div class="loading-note">No clinics yet — add one through the Chat tab</div>';
       return;
     }
 
+    clinicsData = data.clinics;
     listEl.innerHTML = data.clinics.map(renderClinic).join("");
   } catch (err) {
     document.getElementById('clinicCount').textContent = "";
