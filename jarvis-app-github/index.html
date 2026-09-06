@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jarvis — Today</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --card: #181818; --card-raised: #1e1e1e; --border: #2a2a2a;
+    --gold: #c9a84c; --gold-dim: #8a6f2e; --red: #d94040; --teal: #2db3a0;
+    --amber: #e0983a; --grape: #9b6bd6; --white: #f0ece4; --gray: #666; --gray-dim: #444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:40px; }
+
+  nav { display:flex; border-bottom:1px solid var(--border); }
+  nav a { flex:1; text-align:center; padding:14px 0; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; text-decoration:none; color:var(--gray); border-bottom:2px solid transparent; }
+  nav a.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+  header { padding:28px 20px 20px; border-bottom:1px solid var(--border); }
+  .eyebrow { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.3em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:6px; }
+  .notify-toggle { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); margin-top:14px; padding:8px 12px; border:1px solid var(--border); border-radius:6px; display:inline-block; cursor:pointer; }
+  .notify-toggle.enabled { color:var(--teal); border-color:rgba(45,179,160,0.35); }
+  .notify-toggle.unsupported { opacity:0.4; cursor:default; }
+
+  .metrics-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:16px; }
+  .metric-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
+  .metric-num { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--gold); line-height:1; }
+  .metric-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.08em; color:var(--gray); text-transform:uppercase; margin-top:5px; }
+  .metric-sub { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:2px; }
+
+  .revenue-btn { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gold); margin-top:14px; margin-left:10px; padding:8px 12px; border:1px solid rgba(201,168,76,0.35); border-radius:6px; display:inline-block; cursor:pointer; }
+  .revenue-btn:active { opacity:0.6; }
+
+  .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.75); z-index:100; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px 20px; max-width:400px; width:100%; }
+  .modal-title { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--white); margin-bottom:18px; }
+  .revenue-row { display:flex; justify-content:space-between; align-items:baseline; padding:14px 0; border-top:1px solid var(--border); }
+  .revenue-row:first-of-type { border-top:none; }
+  .revenue-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em; }
+  .revenue-amount { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--gold); }
+  .revenue-note { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:16px; line-height:1.5; }
+  .modal-close-btn { width:100%; margin-top:18px; padding:12px; background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--gray); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; }
+
+  .revenue-detail-link { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); text-decoration:underline; text-align:center; margin-top:16px; cursor:pointer; }
+  .modal-box.wide { max-width:480px; }
+  .chart-bars { display:flex; align-items:flex-end; gap:4px; height:140px; margin-top:20px; overflow-x:auto; padding-bottom:4px; }
+  .chart-bar-col { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:32px; }
+  .chart-bar { width:20px; background:var(--gold-dim); border-radius:3px 3px 0 0; min-height:2px; }
+  .chart-bar.has-revenue { background:var(--gold); }
+  .chart-bar-label { font-family:'DM Mono',monospace; font-size:8px; color:var(--gray); margin-top:6px; writing-mode:vertical-rl; text-orientation:mixed; }
+  .chart-bar-amount { font-family:'DM Mono',monospace; font-size:8px; color:var(--gold); margin-bottom:3px; }
+  .back-link { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); text-decoration:underline; cursor:pointer; margin-bottom:14px; display:inline-block; }
+  .day-date { font-family:'Bebas Neue',sans-serif; font-size:clamp(40px,11vw,56px); letter-spacing:0.03em; color:var(--white); line-height:0.95; }
+  .day-date span { color:var(--gold); }
+  .day-stats { display:flex; gap:18px; margin-top:14px; }
+  .stat { display:flex; flex-direction:column; }
+  .stat-num { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); line-height:1; }
+  .stat-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin-top:3px; }
+
+  .quote-block { margin:24px 20px 0; padding:18px 20px; background:var(--card); border-left:2px solid var(--gold-dim); border-radius:4px; }
+  .quote-tag { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:8px; }
+  .quote-text { font-size:15px; font-style:italic; line-height:1.5; color:var(--white); }
+  .quote-attr { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:8px; }
+
+  main { padding:0 20px; max-width:640px; margin:0 auto; }
+
+  .section-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.25em; color:var(--gold-dim); text-transform:uppercase; margin:28px 0 14px; display:flex; align-items:center; gap:10px; }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .timeline { display:flex; flex-direction:column; gap:1px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .tl-item { background:var(--card); padding:14px 16px; display:grid; grid-template-columns:56px 4px 1fr auto; align-items:center; gap:14px; }
+  .tl-time { font-family:'DM Mono',monospace; font-size:13px; color:var(--gray); }
+  .tl-bar { align-self:stretch; border-radius:2px; }
+  .tl-bar.training { background:var(--red); }
+  .tl-bar.recovery { background:var(--teal); }
+  .tl-bar.clinic { background:var(--grape); }
+  .tl-bar.personal { background:var(--gold-dim); }
+  .tl-name { font-size:15px; font-weight:500; color:var(--white); }
+  .tl-type { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; margin-top:2px; }
+  .tl-type.training { color:var(--red); } .tl-type.recovery { color:var(--teal); }
+  .tl-type.clinic { color:var(--grape); } .tl-type.personal { color:var(--gold-dim); }
+  .tl-loc { width:30px; height:30px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--gray); font-size:13px; flex-shrink:0; }
+  .tl-loc-link { text-decoration:none; cursor:pointer; border-color:var(--gold-dim); }
+  .tl-loc-link:active { opacity:0.5; }
+
+  .focus-stack { position:relative; padding-bottom:14px; }
+  .focus-card {
+    background:var(--card-raised); border:1px solid var(--border); border-radius:6px;
+    padding:16px 18px; display:flex; align-items:flex-start; gap:14px; position:relative;
+  }
+  .focus-card + .focus-card { margin-top:-34px; padding-top:44px; }
+  .focus-card:nth-child(1){ z-index:3; }
+  .focus-card:nth-child(2){ z-index:2; transform:scale(0.97); opacity:0.85; }
+  .focus-card:nth-child(3){ z-index:1; transform:scale(0.94); opacity:0.65; }
+  .focus-card:nth-child(n+4){ display:none; }
+  .focus-rank { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gray-dim); line-height:1; min-width:22px; }
+  .focus-card:nth-child(1) .focus-rank { color:var(--amber); }
+  .focus-body { flex:1; }
+  .focus-category { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:4px; }
+  .focus-category.decision { color:var(--amber); }
+  .focus-category.action { color:var(--teal); }
+  .focus-category.followup { color:var(--gold-dim); }
+  .focus-category.fyi { color:var(--gray); }
+  .focus-title { font-size:14.5px; font-weight:600; color:var(--white); margin-bottom:3px; }
+  .focus-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+  .focus-tag { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; border-radius:3px; white-space:nowrap; }
+  .focus-tag.urgent, .focus-tag.Clinic { background:rgba(224,152,58,0.15); color:var(--amber); border:1px solid rgba(224,152,58,0.3); }
+  .focus-tag.pending, .focus-tag.Renewal { background:rgba(201,168,76,0.1); color:var(--gold-dim); border:1px solid rgba(201,168,76,0.25); }
+  .focus-tag.Follow-Up { background:rgba(102,102,102,0.15); color:var(--gray); border:1px solid rgba(102,102,102,0.3); }
+  .focus-tag.Recovery { background:rgba(45,179,160,0.15); color:var(--teal); border:1px solid rgba(45,179,160,0.3); }
+
+  .opportunity-card { background:rgba(201,168,76,0.05); border:1px solid rgba(201,168,76,0.2); border-radius:6px; padding:14px 16px; margin-bottom:10px; }
+  .opportunity-title { font-size:14px; font-weight:600; color:var(--gold); margin-bottom:3px; }
+  .opportunity-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+
+  .confirmation-card { background:var(--card); border:1px solid rgba(45,179,160,0.25); border-radius:8px; padding:14px 16px; margin-bottom:10px; }
+  .confirmation-title { font-size:14px; color:var(--white); margin-bottom:10px; line-height:1.4; }
+  .confirmation-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .confirmation-btn { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; text-transform:uppercase; padding:7px 14px; border-radius:5px; border:1px solid var(--teal); color:var(--teal); background:transparent; cursor:pointer; }
+  .confirmation-btn:active { opacity:0.6; }
+  .confirmation-btn:disabled { opacity:0.3; }
+  .confirmation-btn.negative { border-color:var(--red); color:var(--red); }
+  .confirmation-btn.neutral { border-color:var(--gray); color:var(--gray); }
+  .confirmation-error { font-family:'DM Mono',monospace; font-size:10px; color:var(--red); margin-top:10px; }
+  .focus-actions { display:flex; gap:6px; margin-top:10px; }
+  .focus-btn { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; padding:5px 10px; border-radius:4px; border:1px solid var(--border); background:transparent; color:var(--gray); cursor:pointer; }
+  .focus-btn.done { border-color:rgba(45,179,160,0.35); color:var(--teal); }
+  .focus-btn.snooze { border-color:var(--border); color:var(--gray); }
+  .focus-btn:active { opacity:0.6; }
+  .focus-btn:disabled { opacity:0.3; }
+  .draft-message-box { background:#101010; border:1px solid var(--border); border-radius:4px; padding:10px 12px; margin-top:8px; font-size:12.5px; color:var(--white); line-height:1.4; font-style:italic; }
+  .draft-message-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin-bottom:4px; }
+  .draft-message-input { width:100%; background:#101010; border:1px solid var(--border); border-radius:4px; padding:10px 12px; margin-top:8px; font-size:12.5px; color:var(--white); line-height:1.4; font-style:italic; font-family:'DM Sans',sans-serif; resize:none; }
+  .draft-message-hint { font-family:'DM Mono',monospace; font-size:8px; color:var(--gray-dim); margin-top:4px; }
+
+  .empty-note, .loading-note, .error-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); padding:20px 0; text-align:center; }
+  .error-note { color:var(--red); }
+
+  footer { margin-top:36px; padding:20px; text-align:center; }
+  .footer-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.25em; color:var(--gray-dim); text-transform:uppercase; }
+
+  .chat-panel { margin-top:28px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .chat-panel-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--card); }
+  #chatMessages { max-height:360px; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; background:var(--black); }
+  .msg { max-width:85%; padding:10px 13px; border-radius:10px; font-size:13.5px; line-height:1.5; white-space:pre-wrap; }
+  .msg.user { align-self:flex-end; background:var(--gold-dim); color:var(--black); border-bottom-right-radius:2px; }
+  .msg.assistant { align-self:flex-start; background:var(--card-raised); border:1px solid var(--border); border-bottom-left-radius:2px; }
+  .msg.action { align-self:flex-start; background:rgba(45,179,160,0.08); border:1px solid rgba(45,179,160,0.3); border-radius:10px; padding:11px 13px; }
+  .action-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--teal); text-transform:uppercase; margin-bottom:5px; }
+  .action-detail { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); line-height:1.6; }
+  .action-detail b { color:var(--white); font-weight:500; }
+  .chat-typing { align-self:flex-start; display:flex; gap:4px; padding:10px 13px; }
+  .chat-typing span { width:5px; height:5px; border-radius:50%; background:var(--gray); animation:bounce 1.2s infinite; }
+  .chat-typing span:nth-child(2) { animation-delay:0.15s; } .chat-typing span:nth-child(3) { animation-delay:0.3s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0); opacity:0.4;} 30%{transform:translateY(-4px); opacity:1;} }
+  #chatInputRow { display:flex; gap:8px; padding:12px; border-top:1px solid var(--border); background:var(--card); }
+  #chatInput { flex:1; background:var(--card-raised); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13.5px; resize:none; outline:none; }
+  #chatInput:focus { border-color:var(--gold-dim); }
+  #chatSend { background:var(--gold); color:var(--black); border:none; border-radius:8px; padding:0 16px; font-family:'DM Sans',sans-serif; font-weight:600; font-size:12px; cursor:pointer; }
+  #chatSend:disabled { opacity:0.4; cursor:default; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="active">Dashboard</a>
+  <a href="clients.html">Clients</a>
+  <a href="clinics.html">Clinics</a>
+  <a href="recovery-watch.html">Recovery Watch</a>
+  <a href="peptide-watch.html">Peptide Watch</a>
+</nav>
+
+<header>
+  <div class="eyebrow">RVLTN Performance</div>
+  <div class="day-date" id="dayDate">— <span>—</span></div>
+  <div class="day-stats">
+    <div class="stat"><div class="stat-num" id="statSessions">—</div><div class="stat-label">Sessions</div></div>
+    <div class="stat"><div class="stat-num" id="statFocus">—</div><div class="stat-label">Needs You</div></div>
+    <div class="stat"><div class="stat-num" id="statFirst">—</div><div class="stat-label">First Up</div></div>
+  </div>
+  <div id="notifyToggle" class="notify-toggle" onclick="enablePushNotifications()">🔔 Enable Notifications</div>
+  <div class="revenue-btn" onclick="openRevenueModal()">💰 Revenue Snapshot</div>
+</header>
+
+<div class="modal-overlay" id="revenueModal">
+  <div class="modal-box" id="revenueModalBox">
+    <div class="modal-title">Revenue Snapshot</div>
+    <div id="revenueContent">
+      <div class="loading-note">Loading…</div>
+    </div>
+    <button class="modal-close-btn" onclick="closeRevenueModal()">Close</button>
+  </div>
+</div>
+
+<div class="quote-block" id="quoteBlock" style="display:none;">
+  <div class="quote-tag" id="quoteTag">—</div>
+  <div class="quote-text" id="quoteText"></div>
+  <div class="quote-attr" id="quoteAttr"></div>
+</div>
+
+<main>
+  <div class="section-label">Today</div>
+  <div class="timeline" id="timeline">
+    <div class="loading-note">Loading…</div>
+  </div>
+
+  <div class="section-label">Business Pulse</div>
+  <div id="metricsGrid" class="metrics-grid">
+    <div class="loading-note">Loading…</div>
+  </div>
+
+  <div class="section-label">Needs Your Attention</div>
+  <div class="focus-stack" id="focusStack">
+    <div class="loading-note">Loading…</div>
+  </div>
+
+  <div class="section-label">Pending Confirmations</div>
+  <div id="confirmationsList">
+    <div class="loading-note">Loading…</div>
+  </div>
+
+  <div class="section-label">Opportunities</div>
+  <div id="opportunitiesList">
+    <div class="loading-note">Loading…</div>
+  </div>
+  <div class="chat-panel">
+    <div class="chat-panel-label" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Tell Jarvis</span>
+      <span id="newConvoBtn" style="cursor:pointer; text-decoration:underline; opacity:0.7;">New conversation</span>
+    </div>
+    <div id="chatMessages">
+      <div class="msg assistant">What do you need? Add a client, log a session, add a clinic, log a touchpoint — just tell me.</div>
+    </div>
+    <div id="chatInputRow">
+      <textarea id="chatInput" rows="1" placeholder="Tell Jarvis what you need..."></textarea>
+      <button id="chatSend">Send</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-label" id="footerLabel">Jarvis · Loading…</div>
+</footer>
+
+<script>
+const DASHBOARD_URL = "https://affable-chachalaca.pikapod.net/webhook/dashboard-data";
+const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  let h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'p' : 'a';
+  h = h % 12; if (h === 0) h = 12;
+  return `${h}:${m}${ampm}`;
+}
+
+function typeLabel(type) {
+  return { training: 'Training', recovery: 'Recovery', clinic: 'Clinic', personal: 'Personal' }[type] || 'Personal';
+}
+
+function categoryClass(category) {
+  return {
+    'NEEDS DECISION': 'decision',
+    'NEEDS ACTION': 'action',
+    'NEEDS FOLLOW-UP': 'followup',
+    'FYI': 'fyi'
+  }[category] || 'fyi';
+}
+
+function selectDraft(btnEl) {
+  const textarea = btnEl.closest('.focus-body').querySelector('.draft-message-input');
+  if (!textarea) return;
+  textarea.focus();
+  textarea.select();
+  // Mobile Safari/Chrome sometimes need setSelectionRange explicitly
+  textarea.setSelectionRange(0, textarea.value.length);
+}
+
+const ACTION_URL = "https://affable-chachalaca.pikapod.net/webhook/dashboard-action";
+
+async function handleAction(action, id, btnEl) {
+  const card = btnEl.closest('.focus-card');
+  card.querySelectorAll('.focus-btn').forEach(b => b.disabled = true);
+  try {
+    const response = await fetch(ACTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ action, id })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    setTimeout(loadDashboard, 600);
+  } catch (err) {
+    card.querySelectorAll('.focus-btn').forEach(b => b.disabled = false);
+    alert("Couldn't complete that action: " + err.message);
+  }
+}
+
+async function loadDashboard() {
+  const now = new Date();
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const dayNum = now.getDate();
+  document.getElementById('dayDate').innerHTML = `${dayName} <span>${dayNum}</span>`;
+
+  try {
+    const response = await fetch(DASHBOARD_URL, {
+      method: "GET",
+      headers: { "X-Api-Key": API_KEY }
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+    window.latestDashboardData = data;
+
+    document.getElementById('statSessions').textContent = data.sessionCount ?? 0;
+    document.getElementById('statFocus').textContent = data.focusCount ?? 0;
+    document.getElementById('statFirst').textContent = data.timeline && data.timeline[0] ? fmtTime(data.timeline[0].time) : '—';
+
+    if (data.quote && data.quote.quote) {
+      const toneLabels = { calm: 'A moment of calm', motivate: 'Today\'s push', focus: 'Stay the course' };
+      document.getElementById('quoteTag').textContent = toneLabels[data.quote.tone] || 'A thought for today';
+      document.getElementById('quoteText').textContent = '"' + data.quote.quote + '"';
+      document.getElementById('quoteAttr').textContent = data.quote.attribution ? '— ' + data.quote.attribution : '';
+      document.getElementById('quoteBlock').style.display = 'block';
+    }
+
+    const timelineEl = document.getElementById('timeline');
+    if (!data.timeline || data.timeline.length === 0) {
+      timelineEl.innerHTML = '<div class="empty-note">Nothing on the calendar today</div>';
+    } else {
+      timelineEl.innerHTML = data.timeline.map(item => `
+        <div class="tl-item">
+          <div class="tl-time">${fmtTime(item.time)}</div>
+          <div class="tl-bar ${item.type}"></div>
+          <div>
+            <div class="tl-name">${item.name}</div>
+            <div class="tl-type ${item.type}">${typeLabel(item.type)}</div>
+          </div>
+          ${item.location
+            ? `<a class="tl-loc tl-loc-link" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.location)}" target="_blank" rel="noopener">📍</a>`
+            : `<div class="tl-loc">•</div>`}
+        </div>
+      `).join('');
+    }
+
+    const focusEl = document.getElementById('focusStack');
+    if (!data.focusItems || data.focusItems.length === 0) {
+      focusEl.innerHTML = '<div class="empty-note">Nothing needs your attention right now</div>';
+    } else {
+      focusEl.innerHTML = data.focusItems.map((item, i) => `
+        <div class="focus-card">
+          <div class="focus-rank">${String(i + 1).padStart(2, '0')}</div>
+          <div class="focus-body">
+            <div class="focus-category ${categoryClass(item.category)}">${item.category || ''}</div>
+            <div class="focus-title">${item.title}</div>
+            <div class="focus-sub">${item.sub}</div>
+            ${item.draftMessage ? `
+              <div class="draft-message-label">Draft Text \u2014 tap below, then select all & copy</div>
+              <textarea class="draft-message-input" rows="3" readonly onclick="this.select()">${item.draftMessage}</textarea>
+              <div class="focus-actions">
+                <button class="focus-btn done" onclick="selectDraft(this)">Select Text</button>
+                ${item.actionType === 'recovery_reachout' ? `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>` : ''}
+                <button class="focus-btn snooze" onclick="handleAction('${snoozeActionFor(item.actionType)}', '${item.id}', this)">Snooze</button>
+              </div>
+            ` : `
+            <div class="focus-actions">
+              ${item.actionType === 'clinic' ? `<button class="focus-btn done" onclick="handleAction('clinic_done', '${item.id}', this)">Done</button>` : ''}
+              ${item.actionType === 'recovery_reachout' ? `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>` : ''}
+              <button class="focus-btn snooze" onclick="handleAction('${snoozeActionFor(item.actionType)}', '${item.id}', this)">Snooze</button>
+            </div>
+            `}
+          </div>
+          <div class="focus-tag ${item.tag}">${item.tag}</div>
+        </div>
+      `).join('');
+    }
+
+    const m = data.metrics || {};
+    document.getElementById('metricsGrid').innerHTML = `
+      <div class="metric-card">
+        <div class="metric-num">${m.activeClientsTotal ?? '—'}</div>
+        <div class="metric-label">Active Clients</div>
+        <div class="metric-sub">${m.activeTrainingCount ?? 0} training · ${m.activeRecoveryCount ?? 0} recovery</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">${m.sessionsCompletedThisWeek ?? '—'}</div>
+        <div class="metric-label">Sessions This Week</div>
+        <div class="metric-sub">${m.sessionsThisWeek ?? 0} total scheduled</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">${m.activeClinicsCount ?? '—'}</div>
+        <div class="metric-label">Active Clinics</div>
+        <div class="metric-sub">${m.clinicsNeedingContact ?? 0} need contact</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">${m.packagesNearingCompletion ?? '—'}</div>
+        <div class="metric-label">Packages Nearing Completion</div>
+        <div class="metric-sub">${m.followUpsDue ?? 0} follow-ups due</div>
+      </div>
+    `;
+
+    document.getElementById('footerLabel').textContent = 'Jarvis · Updated just now';
+
+    const oppEl = document.getElementById('opportunitiesList');
+    if (!data.opportunities || data.opportunities.length === 0) {
+      oppEl.innerHTML = '<div class="empty-note">No significant open blocks today</div>';
+    } else {
+      oppEl.innerHTML = data.opportunities.map(o => `
+        <div class="opportunity-card">
+          <div class="opportunity-title">${o.title}</div>
+          <div class="opportunity-sub">${o.sub}</div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    document.getElementById('timeline').innerHTML = `<div class="error-note">Couldn't load your schedule: ${err.message}</div>`;
+    document.getElementById('focusStack').innerHTML = '';
+    document.getElementById('footerLabel').textContent = 'Jarvis · Connection error';
+  }
+}
+
+const CONFIRMATIONS_LIST_URL = "https://affable-chachalaca.pikapod.net/webhook/pending-confirmations";
+const CONFIRMATIONS_RESOLVE_URL = "https://affable-chachalaca.pikapod.net/webhook/resolve-confirmation";
+
+function snoozeActionFor(actionType) {
+  if (actionType === 'clinic') return 'clinic_snooze';
+  if (actionType === 'client' || actionType === 'recovery_reachout') return 'client_snooze';
+  if (actionType === 'session') return 'session_snooze';
+  return 'renewal_snooze';
+}
+
+async function loadConfirmations() {
+  const listEl = document.getElementById('confirmationsList');
+  try {
+    const response = await fetch(CONFIRMATIONS_LIST_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+    const confirmations = data.confirmations || [];
+    if (confirmations.length === 0) {
+      listEl.innerHTML = '<div class="empty-note">Nothing waiting on you right now</div>';
+      return;
+    }
+    listEl.innerHTML = confirmations.map(c => {
+      let options = [];
+      try { options = typeof c.options === 'string' ? JSON.parse(c.options) : (c.options || []); } catch (e) {}
+      return `
+      <div class="confirmation-card" id="confirmation-${c.id}">
+        <div class="confirmation-title">${c.title}</div>
+        <div class="confirmation-actions">
+          ${options.map(opt => `
+            <button class="confirmation-btn${opt === 'Canceled' || opt === 'No' ? ' negative' : opt === 'No Show' ? ' neutral' : ''}" onclick="resolveConfirmation('${c.id}', '${opt}', this)">${opt}</button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    }).join('');
+  } catch (err) {
+    listEl.innerHTML = `<div class="error-note">Couldn't load: ${err.message}</div>`;
+  }
+}
+
+async function resolveConfirmation(confirmationId, action, btnEl) {
+  const card = document.getElementById(`confirmation-${confirmationId}`);
+  card.querySelectorAll('.confirmation-btn').forEach(b => b.disabled = true);
+  try {
+    const response = await fetch(CONFIRMATIONS_RESOLVE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ confirmationId, action })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    setTimeout(loadConfirmations, 500);
+  } catch (err) {
+    card.querySelectorAll('.confirmation-btn').forEach(b => b.disabled = false);
+    let errorEl = card.querySelector('.confirmation-error');
+    if (!errorEl) {
+      errorEl = document.createElement('div');
+      errorEl.className = 'confirmation-error';
+      card.appendChild(errorEl);
+    }
+    errorEl.textContent = "⚠️ Couldn't complete that action: " + err.message;
+  }
+}
+
+const VAPID_PUBLIC_KEY = "BI_z_IE2b_qyvBHALtCJfmMMq5EMsxKvFNtIPtgui2OohonDkbGzIWkh_lTV-0s89-NnMM-TwTSEv3W_TQ_zXUU";
+const SAVE_SUBSCRIPTION_URL = "https://affable-chachalaca.pikapod.net/webhook/save-push-subscription";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function openRevenueModal() {
+  showRevenueSnapshot();
+  document.getElementById('revenueModal').classList.add('open');
+}
+
+function showRevenueSnapshot() {
+  const data = window.latestDashboardData;
+  const contentEl = document.getElementById('revenueContent');
+  const r = (data && data.revenue) || {};
+  const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 });
+  document.getElementById('revenueModalBox').classList.remove('wide');
+  contentEl.innerHTML = `
+    <div class="revenue-row">
+      <div class="revenue-label">This Month</div>
+      <div class="revenue-amount">${fmt(r.thisMonth)}</div>
+    </div>
+    <div class="revenue-row">
+      <div class="revenue-label">This Year</div>
+      <div class="revenue-amount">${fmt(r.thisYear)}</div>
+    </div>
+    <div class="revenue-note">Based on ${r.pricedCountThisMonth ?? 0} priced package(s) this month, ${r.pricedCountThisYear ?? 0} this year. Only packages/sessions where a price was captured are counted \u2014 this reflects revenue tracked going forward, not a complete historical picture.</div>
+    <div class="revenue-detail-link" onclick="showMonthlyBreakdown()">View month-by-month breakdown →</div>
+  `;
+}
+
+function showMonthlyBreakdown() {
+  const data = window.latestDashboardData;
+  const contentEl = document.getElementById('revenueContent');
+  const breakdown = (data && data.revenue && data.revenue.monthlyBreakdown) || [];
+  document.getElementById('revenueModalBox').classList.add('wide');
+
+  if (breakdown.length === 0) {
+    contentEl.innerHTML = `
+      <div class="back-link" onclick="showRevenueSnapshot()">← Back</div>
+      <div class="loading-note">No priced packages yet \u2014 breakdown will appear once revenue starts getting tracked.</div>
+    `;
+    return;
+  }
+
+  const maxRevenue = Math.max(...breakdown.map(m => m.revenue), 1);
+  const fmtMonth = ym => {
+    const [y, m] = ym.split('-');
+    return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  };
+  const fmtShort = n => n >= 1000 ? '$' + (n / 1000).toFixed(1) + 'k' : '$' + n;
+
+  contentEl.innerHTML = `
+    <div class="back-link" onclick="showRevenueSnapshot()">← Back</div>
+    <div class="chart-bars">
+      ${breakdown.map(m => `
+        <div class="chart-bar-col">
+          <div class="chart-bar-amount">${m.revenue > 0 ? fmtShort(m.revenue) : ''}</div>
+          <div class="chart-bar ${m.revenue > 0 ? 'has-revenue' : ''}" style="height:${Math.max((m.revenue / maxRevenue) * 120, 2)}px"></div>
+          <div class="chart-bar-label">${fmtMonth(m.month)}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="revenue-note">Shows every month since revenue tracking began. Months with no priced entries show as empty \u2014 that reflects what wasn't captured, not zero business.</div>
+  `;
+}
+
+function closeRevenueModal() {
+  document.getElementById('revenueModal').classList.remove('open');
+}
+
+async function updateNotifyToggleUI() {
+  const el = document.getElementById('notifyToggle');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    el.textContent = '🔕 Notifications not supported on this browser';
+    el.classList.add('unsupported');
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      el.textContent = '🔔 Notifications enabled';
+      el.classList.add('enabled');
+    } else {
+      el.textContent = '🔔 Enable Notifications';
+      el.classList.remove('enabled');
+    }
+  } catch (e) {}
+}
+
+async function enablePushNotifications() {
+  const el = document.getElementById('notifyToggle');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      el.textContent = '🔕 Permission denied — check browser settings';
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const subJson = sub.toJSON();
+    await fetch(SAVE_SUBSCRIPTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth
+      })
+    });
+    await updateNotifyToggleUI();
+  } catch (err) {
+    el.textContent = '🔕 Couldn\'t enable: ' + err.message;
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(updateNotifyToggleUI).catch(() => {});
+}
+
+loadConfirmations();
+loadDashboard();
+
+// --- Embedded chat ---
+const CHAT_URL = "https://affable-chachalaca.pikapod.net/webhook/jarvis-chat";
+const chatMessagesEl = document.getElementById('chatMessages');
+const chatInputEl = document.getElementById('chatInput');
+const chatSendEl = document.getElementById('chatSend');
+let conversationHistory = [];
+try {
+  const saved = localStorage.getItem('jarvisConversationHistory');
+  if (saved) conversationHistory = JSON.parse(saved);
+} catch (e) { conversationHistory = []; }
+
+function saveConversationHistory() {
+  try {
+    // Cap history length to avoid unbounded growth — keep the most recent 40 turns
+    if (conversationHistory.length > 40) conversationHistory = conversationHistory.slice(-40);
+    localStorage.setItem('jarvisConversationHistory', JSON.stringify(conversationHistory));
+  } catch (e) {}
+}
+
+// Restore any prior conversation into the visible chat window on load
+if (conversationHistory.length > 0) {
+  chatMessagesEl.innerHTML = '';
+  conversationHistory.forEach(m => addChatMessage(m.role === 'user' ? 'user' : 'assistant', m.content));
+}
+
+function addChatMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  chatMessagesEl.appendChild(div);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function addChatActionCard(label, details) {
+  const div = document.createElement('div');
+  div.className = 'msg action';
+  div.innerHTML = `<div class="action-label">✓ ${label}</div><div class="action-detail">${details}</div>`;
+  chatMessagesEl.appendChild(div);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function showChatTyping() {
+  const div = document.createElement('div');
+  div.className = 'chat-typing';
+  div.id = 'chat-typing-indicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chatMessagesEl.appendChild(div);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+function hideChatTyping() {
+  const el = document.getElementById('chat-typing-indicator');
+  if (el) el.remove();
+}
+
+async function handleChatSend() {
+  const text = chatInputEl.value.trim();
+  if (!text) return;
+  chatInputEl.value = '';
+  chatSendEl.disabled = true;
+  addChatMessage('user', text);
+  showChatTyping();
+
+  conversationHistory.push({ role: 'user', content: text });
+  saveConversationHistory();
+
+  try {
+    const response = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ messages: conversationHistory })
+    });
+    const data = await response.json();
+    hideChatTyping();
+    if (data.reply) {
+      addChatMessage('assistant', data.reply);
+      conversationHistory.push({ role: 'assistant', content: data.reply });
+      saveConversationHistory();
+    }
+
+    // Anything that changed real data should refresh the dashboard
+    const changedData = data.clinic || data.client || data.session || data.touchpoint || data.deleted || data.removed || data.note;
+    if (changedData) setTimeout(loadDashboard, 500);
+  } catch (err) {
+    hideChatTyping();
+    addChatMessage('assistant', "⚠️ Couldn't reach Jarvis: " + err.message);
+  }
+
+  chatSendEl.disabled = false;
+  chatInputEl.focus();
+}
+
+chatSendEl.addEventListener('click', handleChatSend);
+chatInputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    handleChatSend();
+  }
+});
+chatInputEl.addEventListener('input', () => {
+  chatInputEl.style.height = 'auto';
+  chatInputEl.style.height = Math.min(chatInputEl.scrollHeight, 120) + 'px';
+});
+
+document.getElementById('newConvoBtn').addEventListener('click', () => {
+  conversationHistory = [];
+  try { localStorage.removeItem('jarvisConversationHistory'); } catch (e) {}
+  chatMessagesEl.innerHTML = '<div class="msg assistant">What do you need? Add a client, log a session, add a clinic, log a touchpoint — just tell me.</div>';
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>RVLTN Performance — Session Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --card: #181818; --border: #2a2a2a;
+    --gold: #c9a84c; --gold-dim: #8a6f2e; --red: #d94040; --teal: #2db3a0;
+    --white: #f0ece4; --gray: #555;
+    --archive-bg: #1e1708; --archive-border: #6b5425; --archive-text: #c9a84c;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; }
+
+  nav { display:flex; border-bottom:1px solid var(--border); }
+  nav a { flex:1; text-align:center; padding:14px 0; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; text-decoration:none; color:#666; border-bottom:2px solid transparent; }
+  nav a.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+  header { padding:36px 32px 24px; border-bottom:1px solid var(--border); display:flex; align-items:flex-end; justify-content:space-between; gap:16px; }
+  .brand-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(32px,6vw,56px); letter-spacing:0.08em; color:var(--gold); line-height:1; }
+  .brand-sub { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.25em; color:var(--gray); text-transform:uppercase; margin-top:3px; }
+  .header-stats { display:flex; gap:24px; align-items:flex-end; }
+  .stat { text-align:right; }
+  .stat-num { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--gold); line-height:1; }
+  .stat-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--gray); text-transform:uppercase; }
+  main { padding:32px; max-width:900px; margin:0 auto; }
+  .section-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.3em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:16px; }
+  .group-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.25em; text-transform:uppercase; margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  .group-label.type-pt { color:var(--red); } .group-label.type-rec { color:var(--teal); } .group-label.type-pending { color:var(--gray); }
+
+  .client-card { background:var(--card); border:1px solid var(--border); margin-bottom:12px; transition:border-color 0.2s; }
+  .client-card:hover { border-color:#3a3a3a; }
+  .client-card.expanded { border-color:var(--gold-dim); }
+  .card-header { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:16px; padding:20px 24px; cursor:pointer; user-select:none; }
+  .client-info { display:flex; flex-direction:column; gap:4px; }
+  .client-name { font-size:19px; font-weight:600; }
+  .client-name.type-pt { color:var(--red); } .client-name.type-rec { color:var(--teal); } .client-name.type-pending { color:var(--gray); }
+  .client-type { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gray); }
+  .session-pills { display:flex; gap:8px; align-items:center; }
+  .pill { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:48px; }
+  .pill-num { font-family:'Bebas Neue',sans-serif; font-size:26px; line-height:1; }
+  .pill-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gray); }
+  .pill-purchased .pill-num { color:var(--white); }
+  .pill-used .pill-num { color:var(--gold); }
+  .pill-remaining .pill-num { color:var(--red); }
+  .pill-divider { width:1px; height:32px; background:var(--border); }
+  .expand-btn { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); color:var(--gray); transition:all 0.2s; flex-shrink:0; }
+  .client-card.expanded .expand-btn { border-color:var(--gold-dim); color:var(--gold); transform:rotate(180deg); }
+  @keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .active-panel { display:none; border-top:1px solid var(--border); padding:20px 24px; background:#101010; }
+  .client-card.expanded .active-panel { display:block; animation:slideDown 0.2s ease; }
+  .panel-title { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.25em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:14px; }
+  .dates-grid { display:flex; flex-wrap:wrap; gap:8px; }
+  .date-chip { font-family:'DM Mono',monospace; font-size:11px; padding:6px 12px; border:1px solid; letter-spacing:0.1em; }
+  .date-chip-pt { border-color:#5a2020; color:var(--red); background:#1a0808; }
+  .date-chip-rec { border-color:#1a5a4f; color:var(--teal); background:#081a16; }
+  .date-chip-pending { border-color:#444; color:var(--gray); background:#151515; }
+  .no-sessions { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+  .package-row { display:flex; gap:24px; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); flex-wrap:wrap; }
+  .pkg-item { display:flex; flex-direction:column; gap:2px; }
+  .pkg-val { font-family:'DM Mono',monospace; font-size:12px; color:var(--white); }
+  .pkg-key { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.2em; color:var(--gray); text-transform:uppercase; }
+  .progress-wrap { margin-top:14px; }
+  .progress-bar-bg { height:3px; background:var(--border); width:100%; }
+  .progress-bar-fill { height:3px; transition:width 0.4s ease; }
+  .progress-pt { background:var(--red); } .progress-rec { background:var(--teal); }
+  .progress-label { display:flex; justify-content:space-between; margin-top:6px; }
+  .progress-pct { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray); }
+
+  .oneoff-panel { display:none; border-top:1px solid var(--border); padding:20px 24px; background:#101010; }
+  .client-card.expanded .oneoff-panel { display:block; animation:slideDown 0.2s ease; }
+  .oneoff-title { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.25em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:14px; }
+
+  .archives-section { display:none; padding:0 24px 20px; background:#101010; }
+  .client-card.expanded .archives-section { display:block; }
+  .archives-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.25em; color:var(--gold-dim); text-transform:uppercase; border-top:1px solid var(--border); padding-top:16px; margin-bottom:10px; }
+  .archive-pkg { border:1px solid var(--archive-border); background:var(--archive-bg); margin-bottom:8px; }
+  .archive-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; user-select:none; transition:background 0.15s; }
+  .archive-header:hover { background:rgba(201,168,76,0.06); }
+  .archive-left { display:flex; flex-direction:column; gap:3px; }
+  .archive-title { font-family:'DM Mono',monospace; font-size:11px; color:var(--archive-text); letter-spacing:0.08em; }
+  .archive-meta { font-family:'DM Mono',monospace; font-size:9px; color:var(--gold-dim); }
+  .archive-chevron { font-size:14px; color:var(--gold-dim); transition:transform 0.2s; }
+  .archive-pkg.open .archive-chevron { transform:rotate(180deg); }
+  .archive-dates { display:none; padding:0 16px 14px; flex-wrap:wrap; gap:8px; }
+  .archive-pkg.open .archive-dates { display:flex; }
+  .archive-chip { font-family:'DM Mono',monospace; font-size:10px; padding:4px 10px; border:1px solid var(--archive-border); color:var(--archive-text); background:rgba(201,168,76,0.04); letter-spacing:0.08em; }
+
+  .inactive-toggle { display:flex; align-items:center; gap:12px; padding:14px 0; cursor:pointer; user-select:none; border-top:1px solid var(--border); margin-top:24px; }
+  .inactive-toggle-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.3em; color:var(--gray); text-transform:uppercase; }
+  .inactive-toggle-chevron { font-size:12px; color:var(--gray); transition:transform 0.2s; }
+  .inactive-section { display:none; }
+  .inactive-section.open { display:block; }
+  .inactive-card { background:#111; border:1px solid #1e1e1e; border-left:3px solid #2a2a2a; margin-bottom:8px; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .inactive-name { font-size:14px; color:var(--gray); font-weight:600; }
+  .inactive-meta { font-family:'DM Mono',monospace; font-size:9px; color:#444; letter-spacing:0.1em; margin-top:3px; }
+  .inactive-badge { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; color:#333; text-transform:uppercase; border:1px solid #222; padding:3px 8px; }
+
+  .loading-note, .error-note { font-family:'DM Mono',monospace; font-size:11px; color:#444; padding:20px 0; text-align:center; }
+  .error-note { color:var(--red); }
+
+  .notes-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; margin:16px 0 10px; padding-top:14px; border-top:1px solid var(--border); }
+  .note-row { background:#101010; border:1px solid var(--border); border-left:2px solid var(--gold-dim); border-radius:4px; padding:10px 14px; margin-bottom:8px; }
+
+  .history-toggle { display:flex; align-items:center; gap:6px; padding:8px 0; cursor:pointer; user-select:none; }
+  .history-toggle span:first-child { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); text-transform:uppercase; }
+  .history-chevron { font-size:10px; color:var(--gray); transition:transform 0.2s; }
+  .history-rest { display:none; }
+  .history-rest.open { display:block; }
+  .note-date { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold-dim); }
+  .note-text { font-size:13px; color:var(--white); margin-top:4px; line-height:1.4; }
+
+  .status-summary-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--teal); text-transform:uppercase; margin-top:16px; margin-bottom:8px; }
+  .status-summary-box { background:rgba(45,179,160,0.06); border:1px solid rgba(45,179,160,0.25); border-radius:4px; padding:12px 14px; font-size:13px; color:var(--white); line-height:1.5; margin-bottom:10px; }
+
+  .eval-section { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
+  .eval-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:10px; }
+  .eval-row { display:flex; justify-content:space-between; align-items:center; background:#101010; border:1px solid var(--border); border-radius:4px; padding:9px 12px; margin-bottom:6px; font-size:12.5px; }
+  .eval-file-link { color:var(--white); text-decoration:none; }
+  .eval-file-link:active { opacity:0.6; }
+  .eval-date { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); }
+  .eval-upload-btn { width:100%; margin-top:8px; padding:9px; background:transparent; border:1px dashed var(--border); border-radius:4px; color:var(--gray); font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; }
+  .eval-upload-btn:active { opacity:0.6; }
+  .eval-upload-btn.uploading { color:var(--gold-dim); border-color:var(--gold-dim); }
+
+  .cancel-section { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
+  .cancel-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--red); text-transform:uppercase; margin-bottom:10px; }
+  .cancel-row { background:#101010; border:1px solid var(--border); border-left:2px solid var(--red); border-radius:4px; padding:9px 14px; margin-bottom:6px; }
+  .cancel-date-row { display:flex; justify-content:space-between; align-items:center; }
+  .cancel-date { font-family:'DM Mono',monospace; font-size:11px; color:var(--white); }
+  .cancel-status { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.08em; color:var(--red); text-transform:uppercase; }
+  .cancel-reason { font-size:12.5px; color:var(--gray); margin-top:4px; }
+
+  .phil-section { margin-bottom:14px; }
+  .phil-doc-row { display:flex; justify-content:space-between; align-items:center; background:#101010; border:1px solid var(--border); border-radius:4px; padding:8px 12px; margin-bottom:5px; font-size:12px; }
+  .phil-doc-link { color:var(--gray); text-decoration:none; }
+  .phil-doc-link:active { opacity:0.6; }
+  .phil-doc-date { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); }
+  .doc-delete-btn { background:none; border:none; color:var(--red); font-size:14px; cursor:pointer; padding:0 0 0 10px; line-height:1; }
+  .doc-delete-btn:active { opacity:0.5; }
+  .phil-upload-btn { width:100%; padding:7px; background:transparent; border:1px dashed var(--border); border-radius:4px; color:var(--gray-dim); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; }
+  .phil-upload-btn:active { opacity:0.6; }
+  .phil-upload-btn.uploading { color:var(--gold-dim); border-color:var(--gold-dim); }
+
+  footer { margin-top:48px; padding:24px 32px; border-top:1px solid var(--border); font-family:'DM Mono',monospace; font-size:9px; color:var(--gray); letter-spacing:0.2em; display:flex; justify-content:space-between; }
+  @media(max-width:600px){ header{flex-direction:column;align-items:flex-start} .header-stats{align-self:stretch;justify-content:space-between} .session-pills{display:none} main{padding:16px} }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Dashboard</a>
+  <a href="clients.html" class="active">Clients</a>
+  <a href="clinics.html">Clinics</a>
+  <a href="recovery-watch.html">Recovery Watch</a>
+  <a href="peptide-watch.html">Peptide Watch</a>
+</nav>
+
+<header>
+  <div class="brand">
+    <div class="brand-name">RVLTN</div>
+    <div class="brand-sub">Performance · Session Tracker</div>
+  </div>
+  <div class="header-stats" id="headerStats"></div>
+</header>
+<main>
+  <div class="section-label" id="clientCount">Loading…</div>
+  <div id="clientList"></div>
+  <div id="inactiveToggle" class="inactive-toggle" onclick="toggleInactive()" style="display:none;">
+    <span class="inactive-toggle-label">Inactive Clients <span id="inactiveCount"></span></span>
+    <span class="inactive-toggle-chevron" id="inactiveChevron">▾</span>
+  </div>
+  <div id="inactiveSection" class="inactive-section"></div>
+</main>
+<footer>
+  <span>RVLTN PERFORMANCE</span>
+  <span id="footerDate"></span>
+</footer>
+
+<script>
+const CLIENTS_URL = "https://affable-chachalaca.pikapod.net/webhook/clients-data";
+const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+const UPLOAD_URL = "https://affable-chachalaca.pikapod.net/webhook/upload-document";
+const DOC_URL_ENDPOINT = "https://affable-chachalaca.pikapod.net/webhook/document-url";
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadEvaluation(event, clientId) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const btn = document.querySelector(`#evalfile-${clientId}`).previousElementSibling;
+  const originalText = btn.textContent;
+  btn.textContent = 'Uploading...';
+  btn.classList.add('uploading');
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('targetType', 'client_evaluation');
+    formData.append('clientId', clientId);
+    formData.append('fileName', file.name);
+    const response = await fetch(UPLOAD_URL, {
+      method: "POST",
+      headers: { "X-Api-Key": API_KEY },
+      body: formData
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    await loadClients();
+  } catch (err) {
+    alert("Upload failed: " + err.message);
+    btn.textContent = originalText;
+    btn.classList.remove('uploading');
+  }
+}
+
+async function viewEvaluation(event, filePath) {
+  event.preventDefault();
+  try {
+    const response = await fetch(`${DOC_URL_ENDPOINT}?bucket=client-evaluations&path=${encodeURIComponent(filePath)}`, {
+      method: "GET",
+      headers: { "X-Api-Key": API_KEY }
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+    window.open(data.url, '_blank');
+  } catch (err) {
+    alert("Couldn't open file: " + err.message);
+  }
+}
+
+let clients = [];
+let inactiveClients = [];
+let philosophyDocs = [];
+
+async function loadPhilosophyDocs() {
+  try {
+    const response = await fetch("https://affable-chachalaca.pikapod.net/webhook/list-philosophy", {
+      method: "GET", headers: { "X-Api-Key": API_KEY }
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+    philosophyDocs = data.documents || [];
+  } catch (err) {
+    philosophyDocs = [];
+  }
+}
+
+function renderPhilosophySection(category) {
+  const docs = philosophyDocs.filter(d => d.category === category);
+  return `
+    <div class="phil-section">
+      ${docs.map(d => `
+        <div class="phil-doc-row">
+          <a class="phil-doc-link" href="#" onclick="viewPhilosophyDoc(event, '${d.file_path}')">${d.file_name}</a>
+          <span class="phil-doc-date">${(d.uploaded_at || '').slice(0,10)}</span>
+          <button class="doc-delete-btn" onclick="deleteDocument(event, '${d.id}', '${d.file_path}', 'philosophy', '${category}')">✕</button>
+        </div>
+      `).join("")}
+      <button class="phil-upload-btn" onclick="document.getElementById('philfile-${category}').click()">+ Upload ${category === 'training' ? 'Training' : 'Recovery'} Philosophy</button>
+      <input type="file" id="philfile-${category}" style="display:none" onchange="uploadPhilosophyDoc(event, '${category}')" accept=".pdf,.doc,.docx,.txt,.jpg,.png">
+    </div>
+  `;
+}
+
+async function uploadPhilosophyDoc(event, category) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const btn = document.getElementById(`philfile-${category}`).previousElementSibling;
+  const original = btn.textContent;
+  btn.textContent = 'Uploading...';
+  btn.classList.add('uploading');
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('targetType', 'philosophy');
+    formData.append('category', category);
+    formData.append('fileName', file.name);
+    const response = await fetch(UPLOAD_URL, {
+      method: "POST",
+      headers: { "X-Api-Key": API_KEY },
+      body: formData
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    await loadPhilosophyDocs();
+    render();
+  } catch (err) {
+    alert("Upload failed: " + err.message);
+    btn.textContent = original;
+    btn.classList.remove('uploading');
+  }
+}
+
+async function deleteDocument(event, recordId, filePath, docType) {
+  event.preventDefault();
+  if (!confirm("Delete this document? This can't be undone.")) return;
+  const bucket = docType === 'philosophy' ? 'philosophy-documents' : 'client-evaluations';
+  try {
+    const response = await fetch("https://affable-chachalaca.pikapod.net/webhook/delete-document", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ recordId, path: filePath, bucket, docType })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    if (docType === 'philosophy') { await loadPhilosophyDocs(); render(); }
+    else { await loadClients(); }
+  } catch (err) {
+    alert("Delete failed: " + err.message);
+  }
+}
+
+async function viewPhilosophyDoc(event, filePath) {
+  event.preventDefault();
+  try {
+    const response = await fetch(`${DOC_URL_ENDPOINT}?bucket=philosophy-documents&path=${encodeURIComponent(filePath)}`, {
+      method: "GET", headers: { "X-Api-Key": API_KEY }
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+    window.open(data.url, '_blank');
+  } catch (err) {
+    alert("Couldn't open file: " + err.message);
+  }
+}
+
+function fmtDateOld(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${mm}/${dd}/${yy}`;
+}
+
+function typeLabelFor(sessionType) {
+  if (sessionType === 'training') return 'Personal Training';
+  if (sessionType === 'recovery') return 'Recovery Session';
+  return 'Type Pending';
+}
+
+function transformData(raw) {
+  const activeList = [];
+  const inactiveList = [];
+
+  raw.clients.forEach((c, idx) => {
+    const completedSessionsFlat = [];
+    c.packages.forEach(p => {
+      p.sessions.filter(s => s.status === 'Completed').forEach(s => completedSessionsFlat.push(s.date));
+    });
+    const primaryType = c.client_type || (c.packages.find(p => p.renewal_status === 'active') || c.packages[0] || {}).session_type || null;
+
+    if (c.status !== 'active') {
+      const totalCount = completedSessionsFlat.length;
+      inactiveList.push({
+        name: c.name,
+        typeLabel: typeLabelFor(primaryType),
+        archivedPackages: [{ purchased: totalCount, packageDate: null, sessions: completedSessionsFlat.map(fmtDateOld).sort() }]
+      });
+      return;
+    }
+
+    if (c.billing_mode === 'per_session') {
+      activeList.push({
+        id: idx,
+        realId: c.id,
+        name: c.name,
+        mode: 'oneoff',
+        type: primaryType === 'training' ? 'pt' : primaryType === 'recovery' ? 'rec' : 'pending',
+        typeLabel: typeLabelFor(primaryType),
+        sessions: completedSessionsFlat.map(fmtDateOld).sort(),
+        notes: c.notes || [],
+        statusSummary: c.current_status_summary || null,
+        evaluations: c.evaluations || [],
+        cancellations: c.cancellations || []
+      });
+    } else {
+      const active = c.packages.find(p => p.renewal_status === 'active');
+      const archived = c.packages.filter(p => p.id !== (active && active.id));
+      activeList.push({
+        id: idx,
+        realId: c.id,
+        name: c.name,
+        type: primaryType === 'training' ? 'pt' : primaryType === 'recovery' ? 'rec' : 'pending',
+        typeLabel: typeLabelFor(primaryType),
+        activePackage: active ? {
+          purchased: active.sessions_purchased,
+          packageDate: fmtDateOld(active.purchase_date),
+          sessions: active.sessions.filter(s => s.status === 'Completed').map(s => fmtDateOld(s.date)).sort()
+        } : { purchased: null, packageDate: null, sessions: [] },
+        archivedPackages: archived.map(p => ({
+          purchased: p.sessions_purchased,
+          packageDate: fmtDateOld(p.purchase_date),
+          sessions: p.sessions.filter(s => s.status === 'Completed').map(s => fmtDateOld(s.date)).sort()
+        })),
+        notes: c.notes || [],
+        statusSummary: c.current_status_summary || null,
+        evaluations: c.evaluations || [],
+        cancellations: c.cancellations || []
+      });
+    }
+  });
+
+  return { activeList, inactiveList };
+}
+
+function render() {
+  document.getElementById("headerStats").innerHTML = `
+    <div class="stat"><div class="stat-num">${clients.length}</div><div class="stat-label">Active Clients</div></div>
+    <div class="stat"><div class="stat-num">${inactiveClients.length}</div><div class="stat-label">Inactive Clients</div></div>`;
+
+  document.getElementById("clientCount").textContent = `${clients.length} active client${clients.length !== 1 ? "s" : ""}`;
+
+  const trainingClients = clients.filter(c => c.type === "pt").sort((a, b) => a.name.localeCompare(b.name));
+  const recoveryClients = clients.filter(c => c.type === "rec").sort((a, b) => a.name.localeCompare(b.name));
+  const pendingClients = clients.filter(c => c.type === "pending").sort((a, b) => a.name.localeCompare(b.name));
+
+  let listHtml = "";
+  listHtml += `<div class="group-label type-pt">Personal Training${trainingClients.length ? ' — ' + trainingClients.length : ''}</div>`;
+  listHtml += renderPhilosophySection('training');
+  if (trainingClients.length) {
+    listHtml += trainingClients.map(renderClientCard).join("");
+  }
+  listHtml += `<div class="group-label type-rec">Recovery${recoveryClients.length ? ' — ' + recoveryClients.length : ''}</div>`;
+  listHtml += renderPhilosophySection('recovery');
+  if (recoveryClients.length) {
+    listHtml += recoveryClients.map(renderClientCard).join("");
+  }
+  if (pendingClients.length) {
+    listHtml += `<div class="group-label type-pending">Type Pending — ${pendingClients.length}</div>`;
+    listHtml += pendingClients.map(renderClientCard).join("");
+  }
+  document.getElementById("clientList").innerHTML = listHtml;
+
+  document.getElementById("inactiveToggle").style.display = inactiveClients.length ? "flex" : "none";
+  document.getElementById("inactiveCount").textContent = `(${inactiveClients.length})`;
+  const inactiveSection = document.getElementById("inactiveSection");
+  inactiveSection.innerHTML = inactiveClients.length > 0
+    ? inactiveClients.map(c => {
+        const pkg = c.archivedPackages[0];
+        const lastSession = pkg.sessions.slice(-1)[0] || "—";
+        const total = pkg.sessions.length;
+        return `<div class="inactive-card">
+          <div>
+            <div class="inactive-name">${c.name}</div>
+            <div class="inactive-meta">${c.typeLabel} &nbsp;·&nbsp; Last session: ${lastSession} &nbsp;·&nbsp; ${total} total sessions</div>
+          </div>
+          <div class="inactive-badge">Dormant</div>
+        </div>`;
+      }).join("")
+    : "";
+
+  const now = new Date();
+  document.getElementById("footerDate").textContent = now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+}
+
+function renderNoteHistory(notes, clientId) {
+  const [latest, ...rest] = notes;
+  const latestHtml = `
+    <div class="note-row">
+      <div class="note-date">${latest.date}</div>
+      <div class="note-text">${latest.text}</div>
+    </div>
+  `;
+  if (rest.length === 0) return latestHtml;
+  const restHtml = rest.map(n => `
+    <div class="note-row">
+      <div class="note-date">${n.date}</div>
+      <div class="note-text">${n.text}</div>
+    </div>
+  `).join("");
+  return `
+    ${latestHtml}
+    <div class="history-toggle" onclick="toggleNoteHistory('${clientId}')">
+      <span id="note-toggle-label-${clientId}" data-count="${rest.length}">Show ${rest.length} earlier</span>
+      <span class="history-chevron" id="note-chevron-${clientId}">▾</span>
+    </div>
+    <div class="history-rest" id="note-rest-${clientId}">${restHtml}</div>
+  `;
+}
+
+function toggleNoteHistory(clientId) {
+  const restEl = document.getElementById(`note-rest-${clientId}`);
+  const chevronEl = document.getElementById(`note-chevron-${clientId}`);
+  const labelEl = document.getElementById(`note-toggle-label-${clientId}`);
+  const isOpen = restEl.classList.toggle('open');
+  chevronEl.style.transform = isOpen ? 'rotate(180deg)' : '';
+  labelEl.textContent = isOpen ? 'Hide earlier' : 'Show ' + labelEl.dataset.count + ' earlier';
+}
+
+function renderNotesSection(notes, statusSummary, evaluations, clientId, clientType, cancellations) {
+  const summaryHtml = statusSummary
+    ? `<div class="status-summary-label">Current Status</div><div class="status-summary-box">${statusSummary}</div>`
+    : '';
+  const notesHtml = (!notes || notes.length === 0) ? '' : `
+    <div class="notes-label">Notes — ${notes.length}</div>
+    ${renderNoteHistory(notes, clientId)}
+  `;
+  const evalHtml = clientType !== 'rec' ? '' : `
+    <div class="eval-section">
+      <div class="eval-label">Evaluations — ${(evaluations || []).length}</div>
+      ${(evaluations || []).map(e => `
+        <div class="eval-row">
+          <a class="eval-file-link" href="#" onclick="viewEvaluation(event, '${e.file_path}')">${e.file_name}</a>
+          <span class="eval-date">${(e.uploaded_at || '').slice(0,10)}</span>
+          <button class="doc-delete-btn" onclick="deleteDocument(event, '${e.id}', '${e.file_path}', 'evaluation')">✕</button>
+        </div>
+      `).join("")}
+      <button class="eval-upload-btn" onclick="document.getElementById('evalfile-${clientId}').click()">+ Upload Evaluation</button>
+      <input type="file" id="evalfile-${clientId}" style="display:none" onchange="uploadEvaluation(event, '${clientId}')" accept=".pdf,.doc,.docx,.txt,.jpg,.png">
+    </div>
+  `;
+  const cancelHtml = (!cancellations || cancellations.length === 0) ? '' : `
+    <div class="cancel-section">
+      <div class="cancel-label">Cancellations / No-Shows — ${cancellations.length}</div>
+      ${cancellations.map(c => `
+        <div class="cancel-row">
+          <div class="cancel-date-row">
+            <div class="cancel-date">${(c.date || '').slice(0,10)}</div>
+            <div class="cancel-status">${c.status}</div>
+          </div>
+          ${c.reason ? `<div class="cancel-reason">${c.reason}</div>` : ''}
+        </div>
+      `).join("")}
+    </div>
+  `;
+  return summaryHtml + notesHtml + evalHtml + cancelHtml;
+}
+
+function renderClientCard(c) {
+    const typeClass = c.type === "pt" ? "type-pt" : c.type === "rec" ? "type-rec" : "type-pending";
+    const chipClass = c.type === "pt" ? "date-chip-pt" : c.type === "rec" ? "date-chip-rec" : "date-chip-pending";
+
+    if (c.mode === "oneoff") {
+      return `<div class="client-card" id="card-${c.id}">
+        <div class="card-header" onclick="toggleCard(${c.id})">
+          <div class="client-info">
+            <div class="client-name ${typeClass}">${c.name}</div>
+            <div class="client-type">${c.typeLabel} &nbsp;·&nbsp; Single Sessions</div>
+          </div>
+          <div class="session-pills">
+            <div class="pill pill-used"><div class="pill-num">${c.sessions.length}</div><div class="pill-label">Sessions</div></div>
+          </div>
+          <div class="expand-btn">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <div class="oneoff-panel">
+          <div class="oneoff-title">Single Sessions — ${c.sessions.length} total</div>
+          <div class="dates-grid">${c.sessions.length ? c.sessions.map(d => `<div class="date-chip ${chipClass}">${d}</div>`).join("") : '<div class="no-sessions">No sessions logged yet</div>'}</div>
+          ${renderNotesSection(c.notes, c.statusSummary, c.evaluations, c.realId, c.type, c.cancellations)}
+        </div>
+      </div>`;
+    }
+
+    const pkg = c.activePackage;
+    const used = pkg.sessions.length;
+    const isPending = !pkg.packageDate;
+    const remaining = isPending ? null : pkg.purchased - used;
+    const pct = isPending || !pkg.purchased ? 0 : Math.round((used / pkg.purchased) * 100);
+    const progressClass = c.type === "pt" ? "progress-pt" : "progress-rec";
+    const datesHtml = pkg.sessions.length
+      ? pkg.sessions.map(d => `<div class="date-chip ${chipClass}">${d}</div>`).join("")
+      : `<div class="no-sessions">No sessions logged yet</div>`;
+    const hasArchives = c.archivedPackages && c.archivedPackages.length > 0;
+    const archivesHtml = hasArchives ? `
+      <div class="archives-section">
+        <div class="archives-label">Completed Packages — ${c.archivedPackages.length} archive${c.archivedPackages.length !== 1 ? "s" : ""}</div>
+        ${c.archivedPackages.map((ap, idx) => {
+          const first = ap.sessions[0] || ap.packageDate;
+          const last = ap.sessions[ap.sessions.length - 1] || "—";
+          return `<div class="archive-pkg" id="arch-${c.id}-${idx}">
+            <div class="archive-header" onclick="toggleArchive(${c.id},${idx})">
+              <div class="archive-left">
+                <div class="archive-title">📦 Package ${idx + 1} &nbsp;·&nbsp; ${first} – ${last}</div>
+                <div class="archive-meta">${ap.sessions.length} sessions · ${ap.purchased} purchased</div>
+              </div>
+              <div class="archive-chevron">▾</div>
+            </div>
+            <div class="archive-dates">${ap.sessions.map(d => `<div class="archive-chip">${d}</div>`).join("")}</div>
+          </div>`;
+        }).join("")}
+      </div>` : "";
+
+    return `<div class="client-card" id="card-${c.id}">
+      <div class="card-header" onclick="toggleCard(${c.id})">
+        <div class="client-info">
+          <div class="client-name ${typeClass}">${c.name}</div>
+          <div class="client-type">${c.typeLabel}</div>
+        </div>
+        <div class="session-pills">
+          <div class="pill pill-purchased"><div class="pill-num">${pkg.purchased || "—"}</div><div class="pill-label">Purchased</div></div>
+          <div class="pill-divider"></div>
+          <div class="pill pill-used"><div class="pill-num">${used}</div><div class="pill-label">Used</div></div>
+          <div class="pill-divider"></div>
+          <div class="pill pill-remaining"><div class="pill-num">${remaining !== null ? remaining : "—"}</div><div class="pill-label">Left</div></div>
+        </div>
+        <div class="expand-btn">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="active-panel">
+        <div class="panel-title">${isPending ? "Awaiting New Package" : `Active Package · ${used} of ${pkg.purchased} sessions used`}</div>
+        <div class="dates-grid">${datesHtml}</div>
+        ${!isPending ? `<div class="progress-wrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill ${progressClass}" style="width:${pct}%"></div></div>
+          <div class="progress-label"><span class="progress-pct">Progress</span><span class="progress-pct">${pct}%</span></div>
+        </div>` : ""}
+        <div class="package-row">
+          <div class="pkg-item"><div class="pkg-val">${pkg.packageDate || "—"}</div><div class="pkg-key">Package Date</div></div>
+          <div class="pkg-item"><div class="pkg-val">${pkg.sessions[pkg.sessions.length - 1] || "—"}</div><div class="pkg-key">Last Session</div></div>
+          <div class="pkg-item"><div class="pkg-val">${isPending ? "Pending renewal" : remaining > 0 ? remaining + " remaining" : "Package complete"}</div><div class="pkg-key">Status</div></div>
+        </div>
+        ${renderNotesSection(c.notes, c.statusSummary, c.evaluations, c.realId, c.type, c.cancellations)}
+      </div>
+      ${archivesHtml}
+    </div>`;
+}
+
+function toggleCard(id) { document.getElementById(`card-${id}`).classList.toggle("expanded"); }
+function toggleInactive() {
+  const s = document.getElementById("inactiveSection");
+  const ch = document.getElementById("inactiveChevron");
+  s.classList.toggle("open");
+  ch.style.transform = s.classList.contains("open") ? "rotate(180deg)" : "";
+}
+function toggleArchive(cid, idx) { document.getElementById(`arch-${cid}-${idx}`).classList.toggle("open"); }
+
+async function loadClients() {
+  try {
+    const [clientsResponse] = await Promise.all([
+      fetch(CLIENTS_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } }),
+      loadPhilosophyDocs()
+    ]);
+    if (!clientsResponse.ok) throw new Error("Server returned " + clientsResponse.status);
+    const data = await clientsResponse.json();
+    const { activeList, inactiveList } = transformData(data);
+    clients = activeList;
+    inactiveClients = inactiveList;
+    render();
+  } catch (err) {
+    document.getElementById("clientCount").textContent = "";
+    document.getElementById("clientList").innerHTML = `<div class="error-note">Couldn't load clients: ${err.message}</div>`;
+  }
+}
+
+loadClients();
+</script>
+</body>
+</html>

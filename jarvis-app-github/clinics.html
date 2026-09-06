@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jarvis — Clinics</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --card: #181818; --card-raised: #1e1e1e; --border: #2a2a2a;
+    --gold: #c9a84c; --gold-dim: #8a6f2e; --grape: #9b6bd6; --grape-dim: #6b4a9e;
+    --white: #f0ece4; --gray: #666; --gray-dim: #444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:40px; }
+
+  nav { display:flex; border-bottom:1px solid var(--border); }
+  nav a { flex:1; text-align:center; padding:14px 0; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; text-decoration:none; color:var(--gray); border-bottom:2px solid transparent; }
+  nav a.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+  header { padding:28px 20px 20px; border-bottom:1px solid var(--border); }
+  .eyebrow { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.3em; color:var(--grape); text-transform:uppercase; margin-bottom:4px; }
+  .page-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:0.03em; color:var(--white); }
+  .page-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; }
+
+  main { padding:0 20px; max-width:640px; margin:0 auto; }
+
+  .clinic-card { background:var(--card); border:1px solid var(--border); border-radius:8px; margin-top:16px; overflow:hidden; transition:border-color 0.2s; }
+  .clinic-card.open { border-color:var(--grape-dim); }
+  .clinic-header { display:grid; grid-template-columns:1fr auto; align-items:center; gap:14px; padding:18px 20px; cursor:pointer; user-select:none; }
+  .clinic-name-block { min-width:0; }
+  .clinic-name { font-size:19px; font-weight:600; color:var(--grape); line-height:1.25; }
+  .clinic-contact { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; }
+  .clinic-contact.unset { color:var(--gray-dim); font-style:italic; }
+  .clinic-meta-row { display:flex; gap:14px; margin-top:8px; }
+  .clinic-cadence { font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:0.05em; color:var(--gold-dim); background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.2); border-radius:3px; padding:3px 7px; }
+  .clinic-last { font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:0.05em; color:var(--gray); }
+  .expand-btn { width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:6px; color:var(--gray); transition:all 0.2s; flex-shrink:0; }
+  .clinic-card.open .expand-btn { border-color:var(--grape-dim); color:var(--grape); transform:rotate(180deg); }
+
+  .clinic-detail { display:none; border-top:1px solid var(--border); padding:20px; background:#101010; }
+  .clinic-card.open .clinic-detail { display:block; }
+
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; margin-bottom:18px; }
+  .info-item { display:flex; flex-direction:column; gap:3px; }
+  .info-val { font-family:'DM Mono',monospace; font-size:12.5px; color:var(--white); word-break:break-word; }
+  .info-key { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; }
+  .info-full { grid-column:1 / -1; }
+
+  .touchpoints-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--grape); text-transform:uppercase; margin:18px 0 10px; padding-top:16px; border-top:1px solid var(--border); }
+  .touchpoint-row { background:var(--card-raised); border:1px solid var(--border); border-left:2px solid var(--grape-dim); border-radius:4px; padding:11px 14px; margin-bottom:8px; }
+  .touchpoint-date { font-family:'DM Mono',monospace; font-size:11px; color:var(--grape); }
+  .touchpoint-notes { font-size:13px; color:var(--white); margin-top:4px; line-height:1.45; }
+  .no-touchpoints { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); }
+
+  .history-toggle { display:flex; align-items:center; gap:6px; padding:8px 0; cursor:pointer; user-select:none; }
+  .history-toggle span:first-child { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); text-transform:uppercase; }
+  .history-chevron { font-size:10px; color:var(--gray); transition:transform 0.2s; }
+  .history-rest { display:none; }
+  .history-rest.open { display:block; }
+
+  .relationship-summary-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--grape); text-transform:uppercase; margin-bottom:8px; }
+  .relationship-summary-box { background:rgba(155,107,214,0.08); border:1px solid rgba(155,107,214,0.25); border-radius:4px; padding:12px 14px; font-size:13px; color:var(--white); line-height:1.5; margin-bottom:16px; }
+
+  .loading-note, .error-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); padding:24px 0; text-align:center; }
+  .error-note { color:#d94040; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Dashboard</a>
+  <a href="clients.html">Clients</a>
+  <a href="clinics.html" class="active">Clinics</a>
+  <a href="recovery-watch.html">Recovery Watch</a>
+  <a href="peptide-watch.html">Peptide Watch</a>
+</nav>
+
+<header>
+  <div class="eyebrow">Outreach Tracker</div>
+  <div class="page-title">Clinics</div>
+  <div class="page-sub" id="clinicCount">Loading…</div>
+</header>
+
+<main>
+  <div id="clinicList"></div>
+</main>
+
+<script>
+const CLINICS_URL = "https://affable-chachalaca.pikapod.net/webhook/clinics-data";
+const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function daysSince(iso) {
+  if (!iso) return null;
+  const then = new Date(iso);
+  const now = new Date();
+  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
+}
+
+function renderClinic(c, idx) {
+  const since = daysSince(c.last_touchpoint_date);
+  const lastLabel = c.last_touchpoint_date ? `Last touch: ${since}d ago` : 'No touchpoints yet';
+
+  return `
+    <div class="clinic-card" id="clinic-${idx}">
+      <div class="clinic-header" onclick="toggleClinic(${idx})">
+        <div class="clinic-name-block">
+          <div class="clinic-name">${c.name}</div>
+          <div class="clinic-contact${c.contact_name ? '' : ' unset'}">${c.contact_name || 'No contact name set'}</div>
+          <div class="clinic-meta-row">
+            <div class="clinic-cadence">Every ${c.cadence_days || 14}d</div>
+            <div class="clinic-last">${lastLabel}</div>
+          </div>
+        </div>
+        <div class="expand-btn">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="clinic-detail">
+        ${c.relationship_status_summary ? `
+          <div class="relationship-summary-label">Relationship Status</div>
+          <div class="relationship-summary-box">${c.relationship_status_summary}</div>
+        ` : ''}
+        <div class="info-grid">
+          ${c.contact_name ? `<div class="info-item"><div class="info-val">${c.contact_name}</div><div class="info-key">Contact</div></div>` : ''}
+          ${c.phone ? `<div class="info-item"><div class="info-val">${c.phone}</div><div class="info-key">Phone</div></div>` : ''}
+          ${c.email ? `<div class="info-item"><div class="info-val">${c.email}</div><div class="info-key">Email</div></div>` : ''}
+          ${c.address ? `<div class="info-item info-full"><div class="info-val">${c.address}</div><div class="info-key">Address</div></div>` : ''}
+          ${c.scope_of_practice ? `<div class="info-item info-full"><div class="info-val">${c.scope_of_practice}</div><div class="info-key">Scope of Practice</div></div>` : ''}
+        </div>
+        <div class="touchpoints-label">Reach-Out History — ${c.touchpoints.length} logged</div>
+        ${c.touchpoints.length ? renderTouchpointHistory(c.touchpoints, idx) : '<div class="no-touchpoints">No reach-outs logged yet</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderTouchpointHistory(touchpoints, idx) {
+  const [latest, ...rest] = touchpoints;
+  const latestHtml = `
+    <div class="touchpoint-row">
+      <div class="touchpoint-date">${fmtDate(latest.date)}</div>
+      ${latest.notes ? `<div class="touchpoint-notes">${latest.notes}</div>` : ''}
+    </div>
+  `;
+  if (rest.length === 0) return latestHtml;
+  const restHtml = rest.map(t => `
+    <div class="touchpoint-row">
+      <div class="touchpoint-date">${fmtDate(t.date)}</div>
+      ${t.notes ? `<div class="touchpoint-notes">${t.notes}</div>` : ''}
+    </div>
+  `).join("");
+  return `
+    ${latestHtml}
+    <div class="history-toggle" id="tp-toggle-${idx}" onclick="toggleTouchpointHistory(${idx})">
+      <span id="tp-toggle-label-${idx}" data-count="${rest.length}">Show ${rest.length} earlier</span>
+      <span class="history-chevron" id="tp-chevron-${idx}">▾</span>
+    </div>
+    <div class="history-rest" id="tp-rest-${idx}">${restHtml}</div>
+  `;
+}
+
+function toggleTouchpointHistory(idx) {
+  const restEl = document.getElementById(`tp-rest-${idx}`);
+  const chevronEl = document.getElementById(`tp-chevron-${idx}`);
+  const labelEl = document.getElementById(`tp-toggle-label-${idx}`);
+  const isOpen = restEl.classList.toggle('open');
+  chevronEl.style.transform = isOpen ? 'rotate(180deg)' : '';
+  labelEl.textContent = isOpen ? 'Hide earlier' : 'Show ' + labelEl.dataset.count + ' earlier';
+}
+
+function toggleClinic(idx) {
+  document.getElementById(`clinic-${idx}`).classList.toggle('open');
+}
+
+async function loadClinics() {
+  const listEl = document.getElementById('clinicList');
+  try {
+    const response = await fetch(CLINICS_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+
+    document.getElementById('clinicCount').textContent = `${data.clinics.length} active clinic${data.clinics.length !== 1 ? 's' : ''}`;
+
+    if (!data.clinics || data.clinics.length === 0) {
+      listEl.innerHTML = '<div class="loading-note">No clinics yet — add one through the Chat tab</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.clinics.map(renderClinic).join("");
+  } catch (err) {
+    document.getElementById('clinicCount').textContent = "";
+    listEl.innerHTML = `<div class="error-note">Couldn't load clinics: ${err.message}</div>`;
+  }
+}
+
+loadClinics();
+</script>
+
+</body>
+</html>
