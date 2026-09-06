@@ -18,10 +18,10 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
     tag: data.tag || 'jarvis-notification',
-    data: { url: data.url || '/' }
+    data: { url: data.url || './' }
   };
 
   event.waitUntil(self.registration.showNotification(data.title, options));
@@ -29,7 +29,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const targetUrl = (event.notification.data && event.notification.data.url) || './';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
