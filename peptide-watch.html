@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jarvis — Peptide Watch</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --card: #181818; --card-raised: #1e1e1e; --border: #2a2a2a;
+    --gold: #c9a84c; --gold-dim: #8a6f2e; --grape: #9b6bd6; --amber: #e0983a;
+    --white: #f0ece4; --gray: #666; --gray-dim: #444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:40px; }
+
+  nav { display:flex; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  nav a { flex:1; text-align:center; padding:14px 0; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; text-decoration:none; color:var(--gray); border-bottom:2px solid transparent; }
+  nav a.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+  header { padding:28px 20px 20px; border-bottom:1px solid var(--border); }
+  .eyebrow { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.3em; color:var(--grape); text-transform:uppercase; margin-bottom:4px; }
+  .page-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:0.03em; color:var(--white); }
+  .page-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; }
+
+  main { padding:0 20px; max-width:640px; margin:0 auto; }
+
+  .item-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-top:14px; }
+  .item-tag { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; border-radius:3px; display:inline-block; margin-bottom:8px; }
+  .item-tag.regulation { background:rgba(224,152,58,0.15); color:var(--amber); border:1px solid rgba(224,152,58,0.3); }
+  .item-tag.news { background:rgba(155,107,214,0.15); color:var(--grape); border:1px solid rgba(155,107,214,0.3); }
+  .item-title { font-size:15px; font-weight:600; color:var(--white); margin-bottom:6px; line-height:1.3; }
+  .item-summary { font-size:13px; color:var(--gray); line-height:1.5; }
+  .item-link { font-family:'DM Mono',monospace; font-size:10px; color:var(--gold-dim); margin-top:8px; display:inline-block; text-decoration:none; }
+  .item-date { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:8px; }
+
+  .loading-note, .error-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); padding:24px 0; text-align:center; }
+  .error-note { color:#d94040; }
+
+  .brief-section { background:var(--card); border:1px solid rgba(155,107,214,0.3); border-radius:10px; padding:18px 20px; margin-top:20px; }
+  .brief-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--grape); text-transform:uppercase; margin-bottom:10px; }
+  .brief-text { font-size:14px; color:var(--white); line-height:1.6; margin-bottom:16px; }
+  .actions-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:10px; }
+  .action-row { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--border); font-size:13px; line-height:1.5; color:var(--white); }
+  .action-row:first-of-type { border-top:none; }
+  .action-num { font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--gold); flex-shrink:0; }
+  .brief-week { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:14px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Dashboard</a>
+  <a href="clients.html">Clients</a>
+  <a href="clinics.html">Clinics</a>
+  <a href="recovery-watch.html">Recovery Watch</a>
+  <a href="peptide-watch.html" class="active">Peptide Watch</a>
+</nav>
+
+<header>
+  <div class="eyebrow">Industry Watch</div>
+  <div class="page-title">Peptide Watch</div>
+  <div class="page-sub" id="itemCount">Loading…</div>
+</header>
+
+<main>
+  <div id="briefSection"></div>
+  <div id="itemList"></div>
+</main>
+
+<script>
+const WATCH_URL = "https://affable-chachalaca.pikapod.net/webhook/peptide-watch-data";
+const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+async function loadItems() {
+  const listEl = document.getElementById('itemList');
+  const briefEl = document.getElementById('briefSection');
+  try {
+    const response = await fetch(WATCH_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+
+    document.getElementById('itemCount').textContent = `${data.items.length} item${data.items.length !== 1 ? 's' : ''}`;
+
+    if (data.brief && data.brief.brief_text) {
+      let actions = [];
+      try { actions = typeof data.brief.recommended_actions === 'string' ? JSON.parse(data.brief.recommended_actions) : (data.brief.recommended_actions || []); } catch (e) {}
+      briefEl.innerHTML = `
+        <div class="brief-section">
+          <div class="brief-label">This Week's Brief</div>
+          <div class="brief-text">${data.brief.brief_text}</div>
+          ${actions.length ? `
+            <div class="actions-label">Recommended Actions</div>
+            ${actions.map((a, i) => `<div class="action-row"><div class="action-num">${i + 1}</div><div>${a}</div></div>`).join('')}
+          ` : ''}
+          <div class="brief-week">Week of ${fmtDate(data.brief.week_of)}</div>
+        </div>
+      `;
+    }
+
+    if (!data.items || data.items.length === 0) {
+      listEl.innerHTML = '<div class="loading-note">Nothing new found yet — checks run weekly</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.items.map(i => `
+      <div class="item-card">
+        <div class="item-tag ${i.category}">${i.category}</div>
+        <div class="item-title">${i.title}</div>
+        <div class="item-summary">${i.summary}</div>
+        ${i.source_url ? `<a class="item-link" href="${i.source_url}" target="_blank">View source →</a>` : ''}
+        <div class="item-date">Found ${fmtDate(i.found_date)}</div>
+      </div>
+    `).join("");
+  } catch (err) {
+    document.getElementById('itemCount').textContent = "";
+    listEl.innerHTML = `<div class="error-note">Couldn't load: ${err.message}</div>`;
+  }
+}
+
+loadItems();
+</script>
+
+</body>
+</html>
