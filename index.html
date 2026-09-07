@@ -122,6 +122,12 @@
   .opportunity-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
 
   .confirmation-card { background:var(--card); border:1px solid rgba(45,179,160,0.25); border-radius:8px; padding:14px 16px; margin-bottom:10px; }
+  .confirmation-inputs { display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
+  .confirmation-input-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); margin-top:8px; }
+  .confirmation-input-label:first-child { margin-top:0; }
+  .confirmation-input { background:#101010; border:1px solid var(--border); border-radius:5px; padding:9px 12px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; }
+  .confirmation-input:focus { border-color:var(--teal); }
+  .confirmation-input:disabled { opacity:0.4; }
   .confirmation-title { font-size:14px; color:var(--white); margin-bottom:10px; line-height:1.4; }
   .confirmation-actions { display:flex; gap:8px; flex-wrap:wrap; }
   .confirmation-btn { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; text-transform:uppercase; padding:7px 14px; border-radius:5px; border:1px solid var(--teal); color:var(--teal); background:transparent; cursor:pointer; }
