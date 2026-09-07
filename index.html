@@ -471,6 +471,24 @@ async function loadConfirmations() {
       return;
     }
     listEl.innerHTML = confirmations.map(c => {
+      let inputFields = null;
+      try { inputFields = typeof c.input_fields === 'string' ? JSON.parse(c.input_fields) : c.input_fields; } catch (e) {}
+      if (inputFields && inputFields.length) {
+        return `
+        <div class="confirmation-card" id="confirmation-${c.id}">
+          <div class="confirmation-title">${c.title}</div>
+          <div class="confirmation-inputs">
+            ${inputFields.map(f => `
+              <label class="confirmation-input-label">${f.label}</label>
+              <input class="confirmation-input" id="input-${c.id}-${f.key}" type="${f.type === 'number' ? 'number' : 'text'}" inputmode="${f.type === 'number' ? 'decimal' : 'text'}" placeholder="${f.label}" />
+            `).join('')}
+          </div>
+          <div class="confirmation-actions">
+            <button class="confirmation-btn" onclick="submitConfirmationInput('${c.id}', ${JSON.stringify(inputFields.map(f => f.key)).replace(/"/g, '&quot;')}, this)">Submit</button>
+          </div>
+        </div>
+      `;
+      }
       let options = [];
       try { options = typeof c.options === 'string' ? JSON.parse(c.options) : (c.options || []); } catch (e) {}
       return `
@@ -486,6 +504,37 @@ async function loadConfirmations() {
     }).join('');
   } catch (err) {
     listEl.innerHTML = `<div class="error-note">Couldn't load: ${err.message}</div>`;
+  }
+}
+
+async function submitConfirmationInput(confirmationId, keys, btnEl) {
+  const card = document.getElementById(`confirmation-${confirmationId}`);
+  const inputValues = {};
+  for (const key of keys) {
+    const el = document.getElementById(`input-${confirmationId}-${key}`);
+    const val = el ? el.value : '';
+    inputValues[key] = val === '' ? null : (isNaN(Number(val)) ? val : Number(val));
+  }
+  card.querySelectorAll('.confirmation-btn, .confirmation-input').forEach(b => b.disabled = true);
+  try {
+    const response = await fetch(CONFIRMATIONS_RESOLVE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ confirmationId, inputValues })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    setTimeout(loadConfirmations, 500);
+  } catch (err) {
+    card.querySelectorAll('.confirmation-btn, .confirmation-input').forEach(b => b.disabled = false);
+    let errorEl = card.querySelector('.confirmation-error');
+    if (!errorEl) {
+      errorEl = document.createElement('div');
+      errorEl.className = 'confirmation-error';
+      card.appendChild(errorEl);
+    }
+    errorEl.textContent = "\u26a0\ufe0f Couldn't submit: " + err.message;
   }
 }
 
