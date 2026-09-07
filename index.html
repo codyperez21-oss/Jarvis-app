@@ -287,6 +287,26 @@ function selectDraft(btnEl) {
 }
 
 const ACTION_URL = "https://affable-chachalaca.pikapod.net/webhook/dashboard-action";
+const PROFILE_APPLY_URL = "https://affable-chachalaca.pikapod.net/webhook/apply-profile-change";
+
+async function handleProfileDecision(decision, focusItemId, btnEl) {
+  const card = btnEl.closest('.focus-card');
+  card.querySelectorAll('.focus-btn').forEach(b => b.disabled = true);
+  try {
+    const response = await fetch(PROFILE_APPLY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ focus_item_id: focusItemId, decision })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    setTimeout(loadDashboard, 600);
+  } catch (err) {
+    card.querySelectorAll('.focus-btn').forEach(b => b.disabled = false);
+    alert("Couldn't complete that action: " + err.message);
+  }
+}
 
 async function handleAction(action, id, btnEl) {
   const card = btnEl.closest('.focus-card');
