@@ -401,6 +401,7 @@ async function loadDashboard() {
               <div class="focus-actions">
                 <button class="focus-btn done" onclick="selectDraft(this)">Select Text</button>
                 ${item.actionType === 'recovery_reachout' ? `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>` : ''}
+                ${item.actionType === 'session_confirmation' ? `<button class="focus-btn done" onclick="handleAction('session_confirmation_done', '${item.id}', this)">Sent</button>` : ''}
                 <button class="focus-btn snooze" onclick="handleAction('${snoozeActionFor(item.actionType)}', '${item.id}', this)">Snooze</button>
               </div>
             ` : `
