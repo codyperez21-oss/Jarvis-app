@@ -396,7 +396,10 @@ function transformData(raw) {
         notes: c.notes || [],
         statusSummary: c.current_status_summary || null,
         evaluations: c.evaluations || [],
-        cancellations: c.cancellations || []
+        cancellations: c.cancellations || [],
+        phone: c.phone,
+        email: c.email,
+        address: c.address
       });
     } else {
       const active = c.packages.find(p => p.renewal_status === 'active');
@@ -407,6 +410,9 @@ function transformData(raw) {
         name: c.name,
         type: primaryType === 'training' ? 'pt' : primaryType === 'recovery' ? 'rec' : 'pending',
         typeLabel: typeLabelFor(primaryType),
+        phone: c.phone,
+        email: c.email,
+        address: c.address,
         activePackage: active ? {
           purchased: active.sessions_purchased,
           packageDate: fmtDateOld(active.purchase_date),
