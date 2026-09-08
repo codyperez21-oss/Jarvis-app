@@ -468,6 +468,7 @@ function snoozeActionFor(actionType) {
   if (actionType === 'clinic') return 'clinic_snooze';
   if (actionType === 'client' || actionType === 'recovery_reachout') return 'client_snooze';
   if (actionType === 'session') return 'session_snooze';
+  if (actionType === 'session_confirmation') return 'session_confirmation_snooze';
   return 'renewal_snooze';
 }
 
