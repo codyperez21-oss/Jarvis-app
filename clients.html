@@ -553,19 +553,19 @@ function renderNotesSection(notes, statusSummary, evaluations, clientId, clientT
 
 function renderContactInfo(c) {
   return `<div class="contact-info-section">
-    <div class="contact-view" id="contact-view-${c.id}">
+    <div class="contact-view" id="contact-view-${c.realId}">
       <div class="contact-row"><span class="contact-label">Phone</span><span class="contact-val">${c.phone || '\u2014'}</span></div>
       <div class="contact-row"><span class="contact-label">Email</span><span class="contact-val">${c.email || '\u2014'}</span></div>
       <div class="contact-row"><span class="contact-label">Address</span><span class="contact-val">${c.address || '\u2014'}</span></div>
-      <button class="edit-contact-btn" onclick="editContact('${c.id}', event)">Edit Info</button>
+      <button class="edit-contact-btn" onclick="editContact('${c.realId}', event)">Edit Info</button>
     </div>
-    <div class="contact-edit" id="contact-edit-${c.id}" style="display:none;">
-      <input class="contact-input" id="edit-phone-${c.id}" placeholder="Phone" value="${c.phone || ''}" />
-      <input class="contact-input" id="edit-email-${c.id}" placeholder="Email" value="${c.email || ''}" />
-      <input class="contact-input" id="edit-address-${c.id}" placeholder="Address" value="${c.address || ''}" />
+    <div class="contact-edit" id="contact-edit-${c.realId}" style="display:none;">
+      <input class="contact-input" id="edit-phone-${c.realId}" placeholder="Phone" value="${c.phone || ''}" />
+      <input class="contact-input" id="edit-email-${c.realId}" placeholder="Email" value="${c.email || ''}" />
+      <input class="contact-input" id="edit-address-${c.realId}" placeholder="Address" value="${c.address || ''}" />
       <div class="contact-edit-actions">
-        <button class="save-contact-btn" onclick="saveContact('${c.id}', event)">Save</button>
-        <button class="cancel-contact-btn" onclick="cancelEditContact('${c.id}', event)">Cancel</button>
+        <button class="save-contact-btn" onclick="saveContact('${c.realId}', event)">Save</button>
+        <button class="cancel-contact-btn" onclick="cancelEditContact('${c.realId}', event)">Cancel</button>
       </div>
     </div>
   </div>`;
