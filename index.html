@@ -390,7 +390,12 @@ async function loadDashboard() {
             <div class="focus-category ${categoryClass(item.category)}">${item.category || ''}</div>
             <div class="focus-title">${item.title}</div>
             <div class="focus-sub">${item.sub}</div>
-            ${item.draftMessage ? `
+            ${item.isProfileReview ? `
+            <div class="focus-actions">
+              <button class="focus-btn done" onclick="handleProfileDecision('approve', '${item.focusItemId}', this)">Approve</button>
+              <button class="focus-btn snooze" onclick="handleProfileDecision('reject', '${item.focusItemId}', this)">Reject</button>
+            </div>
+            ` : item.draftMessage ? `
               <div class="draft-message-label">Draft Text \u2014 tap below, then select all & copy</div>
               <textarea class="draft-message-input" rows="3" readonly onclick="this.select()">${item.draftMessage}</textarea>
               <div class="focus-actions">
