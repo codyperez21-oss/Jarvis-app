@@ -37,6 +37,16 @@
   .group-label.type-pt { color:var(--red); } .group-label.type-rec { color:var(--teal); } .group-label.type-pending { color:var(--gray); }
 
   .client-card { background:var(--card); border:1px solid var(--border); margin-bottom:12px; transition:border-color 0.2s; }
+  .contact-info-section { background:#101010; border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin-bottom:14px; }
+  .contact-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:13px; }
+  .contact-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); }
+  .contact-val { color:var(--white); text-align:right; }
+  .edit-contact-btn { margin-top:8px; width:100%; background:transparent; border:1px solid var(--gold-dim); color:var(--gold); border-radius:5px; padding:7px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; }
+  .contact-input { width:100%; box-sizing:border-box; background:#101010; border:1px solid var(--border); border-radius:5px; padding:8px 10px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13px; margin-bottom:6px; outline:none; }
+  .contact-input:focus { border-color:var(--teal); }
+  .contact-edit-actions { display:flex; gap:8px; margin-top:4px; }
+  .save-contact-btn { flex:1; background:var(--teal); border:none; color:#0a0a0a; border-radius:5px; padding:8px; font-size:12px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; }
+  .cancel-contact-btn { flex:1; background:transparent; border:1px solid var(--border); color:var(--gray); border-radius:5px; padding:8px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; }
   .client-card:hover { border-color:#3a3a3a; }
   .client-card.expanded { border-color:var(--gold-dim); }
   .card-header { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:16px; padding:20px 24px; cursor:pointer; user-select:none; }
@@ -188,6 +198,7 @@
 
 <script>
 const CLIENTS_URL = "https://affable-chachalaca.pikapod.net/webhook/clients-data";
+const UPDATE_CLIENT_INFO_URL = "https://affable-chachalaca.pikapod.net/webhook/update-client-info";
 const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
 const UPLOAD_URL = "https://affable-chachalaca.pikapod.net/webhook/upload-document";
 const DOC_URL_ENDPOINT = "https://affable-chachalaca.pikapod.net/webhook/document-url";
@@ -540,6 +551,64 @@ function renderNotesSection(notes, statusSummary, evaluations, clientId, clientT
   return summaryHtml + notesHtml + evalHtml + cancelHtml;
 }
 
+function renderContactInfo(c) {
+  return `<div class="contact-info-section">
+    <div class="contact-view" id="contact-view-${c.id}">
+      <div class="contact-row"><span class="contact-label">Phone</span><span class="contact-val">${c.phone || '\u2014'}</span></div>
+      <div class="contact-row"><span class="contact-label">Email</span><span class="contact-val">${c.email || '\u2014'}</span></div>
+      <div class="contact-row"><span class="contact-label">Address</span><span class="contact-val">${c.address || '\u2014'}</span></div>
+      <button class="edit-contact-btn" onclick="editContact('${c.id}', event)">Edit Info</button>
+    </div>
+    <div class="contact-edit" id="contact-edit-${c.id}" style="display:none;">
+      <input class="contact-input" id="edit-phone-${c.id}" placeholder="Phone" value="${c.phone || ''}" />
+      <input class="contact-input" id="edit-email-${c.id}" placeholder="Email" value="${c.email || ''}" />
+      <input class="contact-input" id="edit-address-${c.id}" placeholder="Address" value="${c.address || ''}" />
+      <div class="contact-edit-actions">
+        <button class="save-contact-btn" onclick="saveContact('${c.id}', event)">Save</button>
+        <button class="cancel-contact-btn" onclick="cancelEditContact('${c.id}', event)">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function editContact(id, event) {
+  if (event) event.stopPropagation();
+  document.getElementById(`contact-view-${id}`).style.display = 'none';
+  document.getElementById(`contact-edit-${id}`).style.display = 'block';
+}
+
+function cancelEditContact(id, event) {
+  if (event) event.stopPropagation();
+  document.getElementById(`contact-edit-${id}`).style.display = 'none';
+  document.getElementById(`contact-view-${id}`).style.display = 'block';
+}
+
+async function saveContact(id, event) {
+  if (event) event.stopPropagation();
+  const phone = document.getElementById(`edit-phone-${id}`).value.trim();
+  const email = document.getElementById(`edit-email-${id}`).value.trim();
+  const address = document.getElementById(`edit-address-${id}`).value.trim();
+  const saveBtn = event ? event.target : null;
+  if (saveBtn) saveBtn.disabled = true;
+  try {
+    const response = await fetch(UPDATE_CLIENT_INFO_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ client_id: id, phone, email, address })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const view = document.getElementById(`contact-view-${id}`);
+    view.querySelector('.contact-row:nth-child(1) .contact-val').textContent = phone || '\u2014';
+    view.querySelector('.contact-row:nth-child(2) .contact-val').textContent = email || '\u2014';
+    view.querySelector('.contact-row:nth-child(3) .contact-val').textContent = address || '\u2014';
+    cancelEditContact(id, null);
+  } catch (err) {
+    alert("Couldn't save contact info: " + err.message);
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
 function renderClientCard(c) {
     const typeClass = c.type === "pt" ? "type-pt" : c.type === "rec" ? "type-rec" : "type-pending";
     const chipClass = c.type === "pt" ? "date-chip-pt" : c.type === "rec" ? "date-chip-rec" : "date-chip-pending";
@@ -559,6 +628,7 @@ function renderClientCard(c) {
           </div>
         </div>
         <div class="oneoff-panel">
+          ${renderContactInfo(c)}
           <div class="oneoff-title">Single Sessions — ${c.sessions.length} total</div>
           <div class="dates-grid">${c.sessions.length ? c.sessions.map(d => `<div class="date-chip ${chipClass}">${d}</div>`).join("") : '<div class="no-sessions">No sessions logged yet</div>'}</div>
           ${renderNotesSection(c.notes, c.statusSummary, c.evaluations, c.realId, c.type, c.cancellations)}
@@ -613,6 +683,7 @@ function renderClientCard(c) {
         </div>
       </div>
       <div class="active-panel">
+        ${renderContactInfo(c)}
         <div class="panel-title">${isPending ? "Awaiting New Package" : `Active Package · ${used} of ${pkg.purchased} sessions used`}</div>
         <div class="dates-grid">${datesHtml}</div>
         ${!isPending ? `<div class="progress-wrap">
