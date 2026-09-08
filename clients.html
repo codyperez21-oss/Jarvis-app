@@ -624,7 +624,6 @@ function renderClientCard(c) {
         <div class="card-header" onclick="toggleCard(${c.id})">
           <div class="client-info">
             <div class="client-name ${typeClass}">${c.name}</div>
-            <div class="client-type">${c.typeLabel} &nbsp;·&nbsp; Single Sessions</div>
           </div>
           <div class="session-pills">
             <div class="pill pill-used"><div class="pill-num">${c.sessions.length}</div><div class="pill-label">Sessions</div></div>
@@ -675,7 +674,6 @@ function renderClientCard(c) {
       <div class="card-header" onclick="toggleCard(${c.id})">
         <div class="client-info">
           <div class="client-name ${typeClass}">${c.name}</div>
-          <div class="client-type">${c.typeLabel}</div>
         </div>
         <div class="session-pills">
           <div class="pill pill-purchased"><div class="pill-num">${pkg.purchased || "—"}</div><div class="pill-label">Purchased</div></div>
