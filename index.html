@@ -333,6 +333,34 @@ async function handleAction(action, id, btnEl) {
   }
 }
 
+function maybeShowMorningBrief(briefText) {
+  if (!briefText) return;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  if (localStorage.getItem('dismissedBriefDate') === today) return;
+  const formatted = briefText
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  const overlay = document.createElement('div');
+  overlay.className = 'brief-modal-overlay';
+  overlay.id = 'briefModalOverlay';
+  overlay.innerHTML = `
+    <div class="brief-modal">
+      <div class="brief-modal-label">\u2600\ufe0f Morning Brief</div>
+      <div class="brief-modal-text">${formatted}</div>
+      <button class="brief-modal-close" onclick="closeMorningBriefModal()">Got it</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function closeMorningBriefModal() {
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  localStorage.setItem('dismissedBriefDate', today);
+  const overlay = document.getElementById('briefModalOverlay');
+  if (overlay) overlay.remove();
+}
+
 async function loadDashboard() {
   const now = new Date();
   const dayName = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
@@ -347,6 +375,7 @@ async function loadDashboard() {
     if (!response.ok) throw new Error("Server returned " + response.status);
     const data = await response.json();
     window.latestDashboardData = data;
+    maybeShowMorningBrief(data.morningBrief);
 
     document.getElementById('statSessions').textContent = data.sessionCount ?? 0;
     document.getElementById('statFocus').textContent = data.focusCount ?? 0;
