@@ -518,7 +518,7 @@ function toggleNoteHistory(clientId) {
   labelEl.textContent = isOpen ? 'Hide earlier' : 'Show ' + labelEl.dataset.count + ' earlier';
 }
 
-function renderNotesSection(notes, statusSummary, evaluations, clientId, clientType, cancellations) {
+function renderNotesSection(notes, statusSummary, evaluations, clientId, clientType, cancellations, touchpoints) {
   const summaryHtml = statusSummary
     ? `<div class="status-summary-label">Current Status</div><div class="status-summary-box">${statusSummary}</div>`
     : '';
@@ -554,7 +554,21 @@ function renderNotesSection(notes, statusSummary, evaluations, clientId, clientT
       `).join("")}
     </div>
   `;
-  return summaryHtml + notesHtml + evalHtml + cancelHtml;
+  const touchpointHtml = (!touchpoints || touchpoints.length === 0) ? '' : `
+    <details class="touchpoints-section">
+      <summary class="touchpoints-label">Reach-Outs — ${touchpoints.length}</summary>
+      ${touchpoints.map(t => `
+        <div class="touchpoint-row">
+          <div class="touchpoint-date-row">
+            <div class="touchpoint-date">${(t.date || '').slice(0,10)}</div>
+            <div class="touchpoint-source">${t.source === 'auto_reachout' ? 'Auto Reminder' : 'Manual'}</div>
+          </div>
+          ${t.notes ? `<div class="touchpoint-notes">${t.notes}</div>` : ''}
+        </div>
+      `).join('')}
+    </details>
+  `;
+  return summaryHtml + notesHtml + evalHtml + cancelHtml + touchpointHtml;
 }
 
 function renderContactInfo(c) {
@@ -699,7 +713,7 @@ function renderClientCard(c) {
           <div class="pkg-item"><div class="pkg-val">${pkg.sessions[pkg.sessions.length - 1] || "—"}</div><div class="pkg-key">Last Session</div></div>
           <div class="pkg-item"><div class="pkg-val">${isPending ? "Pending renewal" : remaining > 0 ? remaining + " remaining" : "Package complete"}</div><div class="pkg-key">Status</div></div>
         </div>
-        ${renderNotesSection(c.notes, c.statusSummary, c.evaluations, c.realId, c.type, c.cancellations)}
+        ${renderNotesSection(c.notes, c.statusSummary, c.evaluations, c.realId, c.type, c.cancellations, c.touchpoints)}
       </div>
       ${archivesHtml}
     </div>`;
