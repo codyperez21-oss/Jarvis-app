@@ -49,6 +49,12 @@
   .revenue-note { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:16px; line-height:1.5; }
   .modal-close-btn { width:100%; margin-top:18px; padding:12px; background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--gray); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; }
 
+  .brief-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .brief-modal { background:var(--card); border:1px solid var(--gold-dim); border-radius:12px; padding:26px 22px; max-width:440px; width:100%; max-height:72vh; overflow-y:auto; }
+  .brief-modal-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); margin-bottom:16px; }
+  .brief-modal-text { color:var(--white); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.65; margin-bottom:22px; }
+  .brief-modal-close { width:100%; background:var(--teal); border:none; color:#0a0a0a; border-radius:7px; padding:13px; font-weight:600; font-size:14px; font-family:'DM Sans',sans-serif; cursor:pointer; }
+
   .revenue-detail-link { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); text-decoration:underline; text-align:center; margin-top:16px; cursor:pointer; }
   .modal-box.wide { max-width:480px; }
   .chart-bars { display:flex; align-items:flex-end; gap:4px; height:140px; margin-top:20px; overflow-x:auto; padding-bottom:4px; }
