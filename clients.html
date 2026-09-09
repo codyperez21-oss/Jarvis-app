@@ -142,6 +142,14 @@
   .eval-upload-btn:active { opacity:0.6; }
   .eval-upload-btn.uploading { color:var(--gold-dim); border-color:var(--gold-dim); }
 
+  .touchpoints-section { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
+  .touchpoints-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gray); cursor:pointer; margin-bottom:8px; }
+  .touchpoint-row { padding:8px 0; border-top:1px solid var(--border); }
+  .touchpoint-row:first-of-type { border-top:none; }
+  .touchpoint-date-row { display:flex; justify-content:space-between; font-size:12px; }
+  .touchpoint-date { color:var(--white); }
+  .touchpoint-source { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); text-transform:uppercase; }
+  .touchpoint-notes { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:3px; }
   .cancel-section { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
   .cancel-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--red); text-transform:uppercase; margin-bottom:10px; }
   .cancel-row { background:#101010; border:1px solid var(--border); border-left:2px solid var(--red); border-radius:4px; padding:9px 14px; margin-bottom:6px; }
@@ -650,7 +658,7 @@ function renderClientCard(c) {
           ${renderContactInfo(c)}
           <div class="oneoff-title">Single Sessions — ${c.sessions.length} total</div>
           <div class="dates-grid">${c.sessions.length ? c.sessions.map(d => `<div class="date-chip ${chipClass}">${d}</div>`).join("") : '<div class="no-sessions">No sessions logged yet</div>'}</div>
-          ${renderNotesSection(c.notes, c.statusSummary, c.evaluations, c.realId, c.type, c.cancellations)}
+          ${renderNotesSection(c.notes, c.statusSummary, c.evaluations, c.realId, c.type, c.cancellations, c.touchpoints)}
         </div>
       </div>`;
     }
