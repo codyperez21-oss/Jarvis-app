@@ -643,8 +643,46 @@ function showRevenueSnapshot() {
       <div class="revenue-label">This Year</div>
       <div class="revenue-amount">${fmt(r.thisYear)}</div>
     </div>
+    ${(r.travelFeesThisMonth || r.travelFeesThisYear) ? `
+    <div class="revenue-row">
+      <div class="revenue-label">Travel Fees (This Month)</div>
+      <div class="revenue-amount">${fmt(r.travelFeesThisMonth)}</div>
+    </div>
+    <div class="revenue-row">
+      <div class="revenue-label">Travel Fees (This Year)</div>
+      <div class="revenue-amount">${fmt(r.travelFeesThisYear)}</div>
+    </div>
+    ` : ''}
     <div class="revenue-note">Based on ${r.pricedCountThisMonth ?? 0} priced package(s) this month, ${r.pricedCountThisYear ?? 0} this year. Only packages/sessions where a price was captured are counted \u2014 this reflects revenue tracked going forward, not a complete historical picture.</div>
     <div class="revenue-detail-link" onclick="showMonthlyBreakdown()">View month-by-month breakdown →</div>
+    <div class="revenue-detail-link" onclick="showClientBreakdown()">View by client →</div>
+  `;
+}
+
+function showClientBreakdown() {
+  const data = window.latestDashboardData;
+  const contentEl = document.getElementById('revenueContent');
+  const byClient = (data && data.revenue && data.revenue.byClient) || [];
+  const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 });
+  document.getElementById('revenueModalBox').classList.add('wide');
+
+  if (byClient.length === 0) {
+    contentEl.innerHTML = `
+      <div class="back-link" onclick="showRevenueSnapshot()">← Back</div>
+      <div class="loading-note">No priced packages yet \u2014 breakdown will appear once revenue starts getting tracked.</div>
+    `;
+    return;
+  }
+
+  contentEl.innerHTML = `
+    <div class="back-link" onclick="showRevenueSnapshot()">← Back</div>
+    ${byClient.map(c => `
+      <div class="revenue-row">
+        <div class="revenue-label">${c.name}${c.travelFees ? ' <span style="opacity:0.6;font-size:11px;">(+' + fmt(c.travelFees) + ' travel)</span>' : ''}</div>
+        <div class="revenue-amount">${fmt(c.total)}</div>
+      </div>
+    `).join('')}
+    <div class="revenue-note">All-time total per client, based on priced packages/sessions only. Travel fees shown separately where they apply.</div>
   `;
 }
 
