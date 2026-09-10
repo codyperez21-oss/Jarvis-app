@@ -643,11 +643,7 @@ function showRevenueSnapshot() {
       <div class="revenue-label">This Year</div>
       <div class="revenue-amount">${fmt(r.thisYear)}</div>
     </div>
-    ${(r.travelFeesThisMonth || r.travelFeesThisYear) ? `
-    <div class="revenue-row">
-      <div class="revenue-label">Travel Fees (This Month)</div>
-      <div class="revenue-amount">${fmt(r.travelFeesThisMonth)}</div>
-    </div>
+    ${r.travelFeesThisYear ? `
     <div class="revenue-row">
       <div class="revenue-label">Travel Fees (This Year)</div>
       <div class="revenue-amount">${fmt(r.travelFeesThisYear)}</div>
