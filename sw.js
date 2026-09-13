@@ -23,6 +23,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body,
     icon: 'icon-192.png',
+    badge: 'icon-badge.png',
     tag: data.tag || 'jarvis-notification',
     data: { url: data.url || './' }
   };
