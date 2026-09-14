@@ -54,6 +54,15 @@
   .log-contact { font-size:12.5px; color:var(--gray); margin-bottom:4px; }
   .log-notes { font-size:13.5px; color:var(--white); line-height:1.45; }
 
+  .doc-list { margin-top:6px; margin-left:19px; }
+  .doc-row { display:flex; align-items:center; gap:6px; padding:3px 0; }
+  .doc-link { font-family:'DM Mono',monospace; font-size:11px; color:var(--teal); text-decoration:none; }
+  .doc-link:active { opacity:0.7; }
+  .upload-row { margin-top:6px; margin-left:19px; }
+  .upload-label { font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:0.05em; color:var(--gray-dim); cursor:pointer; text-decoration:underline; }
+  .upload-label input { display:none; }
+  .upload-status { font-family:'DM Mono',monospace; font-size:9.5px; color:var(--gold); margin-left:8px; }
+
   .loading-note, .error-note, .empty-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); padding:24px 0; text-align:center; }
   .error-note { color:#d94040; }
 </style>
@@ -118,9 +127,24 @@ async function loadNido() {
           ${cat.items.map(item => `
             <div class="nido-item">
               <div class="status-dot ${item.status}"></div>
-              <div>
+              <div style="flex:1;">
                 <div class="item-text">${item.text}</div>
                 <div class="item-status-label">${STATUS_LABELS[item.status] || item.status}</div>
+                ${(item.documents && item.documents.length > 0) ? `
+                  <div class="doc-list">
+                    ${item.documents.map(doc => `
+                      <div class="doc-row">
+                        📎 <a class="doc-link" href="${doc.file_url}" target="_blank" rel="noopener">${doc.file_name}</a>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
+                <div class="upload-row">
+                  <label class="upload-label">+ Add Document
+                    <input type="file" onchange="uploadDocument('${item.id}', this)">
+                  </label>
+                  <span class="upload-status" id="uploadStatus-${item.id}"></span>
+                </div>
               </div>
             </div>
           `).join('')}
@@ -146,6 +170,31 @@ async function loadNido() {
   } catch (err) {
     document.getElementById('statusLine').textContent = "";
     catEl.innerHTML = `<div class="error-note">Couldn't load: ${err.message}</div>`;
+  }
+}
+
+async function uploadDocument(itemId, inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('uploadStatus-' + itemId);
+  statusEl.textContent = 'Uploading…';
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const response = await fetch('https://affable-chachalaca.pikapod.net/webhook/nido-upload-document', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': API_KEY },
+      body: JSON.stringify({ nido_item_id: itemId, file_name: file.name, mime_type: file.type || 'application/octet-stream', file_content_base64: base64 })
+    });
+    if (!response.ok) throw new Error('Server returned ' + response.status);
+    statusEl.textContent = '';
+    loadNido();
+  } catch (err) {
+    statusEl.textContent = 'Failed: ' + err.message;
   }
 }
 
