@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jarvis — Nido</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --card: #181818; --card-raised: #1e1e1e; --border: #2a2a2a;
+    --gold: #c9a84c; --gold-dim: #8a6f2e; --teal: #2db3a0; --amber: #e0983a;
+    --white: #f0ece4; --gray: #666; --gray-dim: #444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:40px; }
+
+  nav { display:flex; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  nav a { flex:1; text-align:center; padding:14px 0; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; text-decoration:none; color:var(--gray); border-bottom:2px solid transparent; }
+  nav a.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+  header { padding:28px 20px 20px; border-bottom:1px solid var(--border); }
+  .eyebrow { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.3em; color:var(--gold); text-transform:uppercase; margin-bottom:4px; }
+  .page-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:0.03em; color:var(--white); }
+  .page-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; }
+  .phase-pill { display:inline-block; margin-top:10px; font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.35); border-radius:20px; padding:5px 14px; }
+
+  main { padding:0 20px; max-width:640px; margin:0 auto; }
+
+  .section-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gray); margin:24px 0 10px; display:flex; align-items:center; gap:10px; }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .category-card { background:var(--card); border:1px solid var(--border); border-left:2px solid var(--gold-dim); border-radius:8px; padding:16px 18px; margin-top:12px; }
+  .category-name { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+  .nido-item { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-top:1px solid var(--border); }
+  .nido-item:first-of-type { border-top:none; padding-top:0; }
+  .status-dot { width:9px; height:9px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+  .status-dot.pending { background:var(--gray-dim); border:1px solid var(--gray); }
+  .status-dot.in_progress { background:var(--amber); }
+  .status-dot.resolved { background:var(--teal); }
+  .item-text { font-size:13.5px; color:var(--white); line-height:1.4; flex:1; }
+  .item-status-label { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--gray); margin-top:3px; }
+
+  .log-entry { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-top:10px; }
+  .log-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .log-category { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold-dim); }
+  .log-date { font-family:'DM Mono',monospace; font-size:9.5px; color:var(--gray-dim); }
+  .log-contact { font-size:12.5px; color:var(--gray); margin-bottom:4px; }
+  .log-notes { font-size:13.5px; color:var(--white); line-height:1.45; }
+
+  .loading-note, .error-note, .empty-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); padding:24px 0; text-align:center; }
+  .error-note { color:#d94040; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Dashboard</a>
+  <a href="clients.html">Clients</a>
+  <a href="clinics.html">Clinics</a>
+  <a href="recovery-watch.html">Recovery Watch</a>
+  <a href="peptide-watch.html">Peptide Watch</a>
+  <a href="nido.html" class="active">Nido</a>
+</nav>
+
+<header>
+  <div class="eyebrow">Project Nido</div>
+  <div class="page-title">Nido</div>
+  <div class="page-sub" id="statusLine">Loading…</div>
+  <div class="phase-pill" id="phasePill" style="display:none;"></div>
+</header>
+
+<main>
+  <div id="categoriesSection"></div>
+  <div id="logSection"></div>
+</main>
+
+<script>
+const NIDO_URL = "https://affable-chachalaca.pikapod.net/webhook/nido-data";
+const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+
+const PHASE_LABELS = { deal_formation: "Deal Formation", build_launch: "Build & Launch" };
+const STATUS_LABELS = { pending: "Pending", in_progress: "In Progress", resolved: "Resolved" };
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+async function loadNido() {
+  const catEl = document.getElementById('categoriesSection');
+  const logEl = document.getElementById('logSection');
+  try {
+    const response = await fetch(NIDO_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+
+    const phasePill = document.getElementById('phasePill');
+    phasePill.textContent = PHASE_LABELS[data.phase] || data.phase;
+    phasePill.style.display = 'inline-block';
+
+    const totalItems = (data.categories || []).reduce((sum, c) => sum + c.items.length, 0);
+    document.getElementById('statusLine').textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''} across ${(data.categories || []).length} categor${(data.categories || []).length !== 1 ? 'ies' : 'y'}`;
+
+    if (!data.categories || data.categories.length === 0) {
+      catEl.innerHTML = '<div class="empty-note">Nothing tracked yet — add an item via chat to get started</div>';
+    } else {
+      catEl.innerHTML = data.categories.map(cat => `
+        <div class="category-card">
+          <div class="category-name">${cat.category}</div>
+          ${cat.items.map(item => `
+            <div class="nido-item">
+              <div class="status-dot ${item.status}"></div>
+              <div>
+                <div class="item-text">${item.text}</div>
+                <div class="item-status-label">${STATUS_LABELS[item.status] || item.status}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+
+    if (data.log && data.log.length > 0) {
+      logEl.innerHTML = `
+        <div class="section-label">Reach-Out Log</div>
+        ${data.log.map(l => `
+          <div class="log-entry">
+            <div class="log-top">
+              <div class="log-category">${l.category}</div>
+              <div class="log-date">${fmtDate(l.date)}</div>
+            </div>
+            ${l.contact ? `<div class="log-contact">${l.contact}</div>` : ''}
+            <div class="log-notes">${l.notes || ''}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+  } catch (err) {
+    document.getElementById('statusLine').textContent = "";
+    catEl.innerHTML = `<div class="error-note">Couldn't load: ${err.message}</div>`;
+  }
+}
+
+loadNido();
+</script>
+
+</body>
+</html>
