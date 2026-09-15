@@ -207,7 +207,10 @@
 
 <div class="modal-overlay" id="revenueModal">
   <div class="modal-box" id="revenueModalBox">
-    <div class="modal-title">Revenue Snapshot</div>
+    <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Revenue Snapshot</span>
+      <span onclick="closeRevenueModal()" style="cursor:pointer; font-size:20px; color:var(--gray); line-height:1;">✕</span>
+    </div>
     <div id="revenueContent">
       <div class="loading-note">Loading…</div>
     </div>
