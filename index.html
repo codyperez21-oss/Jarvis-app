@@ -345,10 +345,10 @@ async function handleAction(action, id, btnEl) {
   }
 }
 
-function maybeShowMorningBrief(briefText) {
+function maybeShowMorningBrief(briefText, briefDate) {
   if (!briefText) return;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  if (localStorage.getItem('dismissedBriefDate') === today) return;
+  const key = briefDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  if (localStorage.getItem('dismissedBriefDate') === key) return;
   const formatted = briefText
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -356,6 +356,7 @@ function maybeShowMorningBrief(briefText) {
   const overlay = document.createElement('div');
   overlay.className = 'brief-modal-overlay';
   overlay.id = 'briefModalOverlay';
+  window.currentBriefDate = arguments[1] || null;
   overlay.innerHTML = `
     <div class="brief-modal">
       <div class="brief-modal-label">\u2600\ufe0f Morning Brief</div>
@@ -367,8 +368,8 @@ function maybeShowMorningBrief(briefText) {
 }
 
 function closeMorningBriefModal() {
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  localStorage.setItem('dismissedBriefDate', today);
+  const key = window.currentBriefDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  localStorage.setItem('dismissedBriefDate', key);
   const overlay = document.getElementById('briefModalOverlay');
   if (overlay) overlay.remove();
 }
@@ -387,7 +388,7 @@ async function loadDashboard() {
     if (!response.ok) throw new Error("Server returned " + response.status);
     const data = await response.json();
     window.latestDashboardData = data;
-    maybeShowMorningBrief(data.morningBrief);
+    maybeShowMorningBrief(data.morningBrief, data.morningBriefDate);
 
     document.getElementById('statSessions').textContent = data.sessionCount ?? 0;
     document.getElementById('statFocus').textContent = data.focusCount ?? 0;
