@@ -843,6 +843,7 @@ function hideChatTyping() {
 }
 
 async function handleChatSend() {
+  if (chatSendEl.disabled) return;
   const text = chatInputEl.value.trim();
   if (!text) return;
   chatInputEl.value = '';
