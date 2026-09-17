@@ -698,7 +698,7 @@ function showClientBreakdown() {
     <div class="back-link" onclick="showRevenueSnapshot()">← Back</div>
     ${byClient.map(c => `
       <div class="revenue-row">
-        <div class="revenue-label">${c.name}${c.travelFees ? ' <span style="opacity:0.6;font-size:11px;">(+' + fmt(c.travelFees) + ' travel)</span>' : ''}</div>
+        <div class="revenue-label">${c.name}</div>
         <div class="revenue-amount">${fmt(c.total)}</div>
       </div>
     `).join('')}
