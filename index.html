@@ -650,18 +650,9 @@ function showRevenueSnapshot() {
       <div class="revenue-label">This Year</div>
       <div class="revenue-amount">${fmt(r.thisYear)}</div>
     </div>
-    <div class="revenue-row" style="cursor:pointer;" onclick="showTravelFeeLog()">
-      <div class="revenue-label">Travel Fees (This Month)</div>
-      <div class="revenue-amount">${fmt(r.travelFeesThisMonth)}</div>
-    </div>
-    <div class="revenue-row" style="cursor:pointer;" onclick="showTravelFeeLog()">
-      <div class="revenue-label">Travel Fees (This Year)</div>
-      <div class="revenue-amount">${fmt(r.travelFeesThisYear)}</div>
-    </div>
     <div class="revenue-note">Based on ${r.pricedCountThisMonth ?? 0} priced package(s) this month, ${r.pricedCountThisYear ?? 0} this year. Only packages/sessions where a price was captured are counted \u2014 this reflects revenue tracked going forward, not a complete historical picture.</div>
     <div class="revenue-detail-link" onclick="showMonthlyBreakdown()">View month-by-month breakdown →</div>
     <div class="revenue-detail-link" onclick="showClientBreakdown()">View by client →</div>
-    <div class="revenue-detail-link" onclick="showTravelFeeLog()">View travel fee log →</div>
   `;
 }
 
