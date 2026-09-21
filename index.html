@@ -374,6 +374,35 @@ function closeMorningBriefModal() {
   if (overlay) overlay.remove();
 }
 
+function maybeShowWeeklyReview(reviewText, reviewDate) {
+  if (!reviewText) return;
+  const key = reviewDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  if (localStorage.getItem('dismissedReviewDate') === key) return;
+  const formatted = reviewText
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  const overlay = document.createElement('div');
+  overlay.className = 'brief-modal-overlay';
+  overlay.id = 'reviewModalOverlay';
+  window.currentReviewDate = reviewDate || null;
+  overlay.innerHTML = `
+    <div class="brief-modal">
+      <div class="brief-modal-label">\u{1F4CA} Weekly Business Review</div>
+      <div class="brief-modal-text">${formatted}</div>
+      <button class="brief-modal-close" onclick="closeWeeklyReviewModal()">Got it</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function closeWeeklyReviewModal() {
+  const key = window.currentReviewDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  localStorage.setItem('dismissedReviewDate', key);
+  const overlay = document.getElementById('reviewModalOverlay');
+  if (overlay) overlay.remove();
+}
+
 async function loadDashboard() {
   const now = new Date();
   const dayName = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
@@ -389,6 +418,7 @@ async function loadDashboard() {
     const data = await response.json();
     window.latestDashboardData = data;
     maybeShowMorningBrief(data.morningBrief, data.morningBriefDate);
+    maybeShowWeeklyReview(data.weeklyReview, data.weeklyReviewDate);
 
     document.getElementById('statSessions').textContent = data.sessionCount ?? 0;
     document.getElementById('statFocus').textContent = data.focusCount ?? 0;
