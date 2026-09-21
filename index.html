@@ -359,7 +359,10 @@ function maybeShowMorningBrief(briefText, briefDate) {
   window.currentBriefDate = arguments[1] || null;
   overlay.innerHTML = `
     <div class="brief-modal">
-      <div class="brief-modal-label">\u2600\ufe0f Morning Brief</div>
+      <div class="brief-modal-label" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>\u2600\ufe0f Morning Brief</span>
+        <span onclick="closeMorningBriefModal()" style="cursor:pointer; font-size:20px; color:var(--gray); line-height:1;">\u2715</span>
+      </div>
       <div class="brief-modal-text">${formatted}</div>
       <button class="brief-modal-close" onclick="closeMorningBriefModal()">Got it</button>
     </div>
@@ -388,7 +391,10 @@ function maybeShowWeeklyReview(reviewText, reviewDate) {
   window.currentReviewDate = reviewDate || null;
   overlay.innerHTML = `
     <div class="brief-modal">
-      <div class="brief-modal-label">\u{1F4CA} Weekly Business Review</div>
+      <div class="brief-modal-label" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>\u{1F4CA} Weekly Business Review</span>
+        <span onclick="closeWeeklyReviewModal()" style="cursor:pointer; font-size:20px; color:var(--gray); line-height:1;">\u2715</span>
+      </div>
       <div class="brief-modal-text">${formatted}</div>
       <button class="brief-modal-close" onclick="closeWeeklyReviewModal()">Got it</button>
     </div>
