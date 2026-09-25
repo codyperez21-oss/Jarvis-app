@@ -88,6 +88,27 @@
   .modal-btn.save { background:var(--grape); border-color:var(--grape); color:#fff; }
   .modal-btn.save:disabled { opacity:0.5; cursor:default; }
   .modal-error { color:#d94040; font-family:'DM Mono',monospace; font-size:11px; margin-top:12px; display:none; }
+
+  .header-row { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; }
+  .watch-btn { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--grape); background:rgba(155,107,214,0.1); border:1px solid rgba(155,107,214,0.3); border-radius:6px; padding:9px 14px; cursor:pointer; white-space:nowrap; }
+
+  .watch-item-card { background:var(--card-raised); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-top:14px; }
+  .watch-item-tag { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; border-radius:3px; display:inline-block; margin-bottom:8px; }
+  .watch-item-tag.regulation { background:rgba(224,152,58,0.15); color:#e0983a; border:1px solid rgba(224,152,58,0.3); }
+  .watch-item-tag.news { background:rgba(155,107,214,0.15); color:var(--grape); border:1px solid rgba(155,107,214,0.3); }
+  .watch-item-title { font-size:15px; font-weight:600; color:var(--white); margin-bottom:6px; line-height:1.3; }
+  .watch-item-summary { font-size:13px; color:var(--gray); line-height:1.5; }
+  .watch-item-link { font-family:'DM Mono',monospace; font-size:10px; color:var(--gold-dim); margin-top:8px; display:inline-block; text-decoration:none; }
+  .watch-item-date { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:8px; }
+
+  .watch-brief-section { background:var(--card-raised); border:1px solid rgba(155,107,214,0.3); border-radius:10px; padding:18px 20px; margin-bottom:6px; }
+  .watch-brief-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--grape); text-transform:uppercase; margin-bottom:10px; }
+  .watch-brief-text { font-size:14px; color:var(--white); line-height:1.6; margin-bottom:16px; }
+  .watch-actions-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:10px; }
+  .watch-action-row { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--border); font-size:13px; line-height:1.5; color:var(--white); }
+  .watch-action-row:first-of-type { border-top:none; }
+  .watch-action-num { font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--gold); flex-shrink:0; }
+  .watch-brief-week { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:14px; }
 </style>
 </head>
 <body>
@@ -103,13 +124,30 @@
 
 <header>
   <div class="eyebrow">Outreach Tracker</div>
-  <div class="page-title">Clinics</div>
-  <div class="page-sub" id="clinicCount">Loading…</div>
+  <div class="header-row">
+    <div>
+      <div class="page-title">Clinics</div>
+      <div class="page-sub" id="clinicCount">Loading…</div>
+    </div>
+    <div class="watch-btn" onclick="openPeptideWatchModal()">💊 Peptide Watch</div>
+  </div>
 </header>
 
 <main>
   <div id="clinicList"></div>
 </main>
+
+<div class="modal-overlay" id="peptideWatchModal">
+  <div class="modal-box">
+    <div class="modal-title">Peptide Watch</div>
+    <div id="watchCount" class="page-sub" style="margin-bottom:16px;">Loading…</div>
+    <div id="watchBriefSection"></div>
+    <div id="watchItemList"></div>
+    <div class="modal-actions" style="margin-top:20px;">
+      <div class="modal-btn" style="flex:1; text-align:center;" onclick="closePeptideWatchModal()">Close</div>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="editModal">
   <div class="modal-box">
