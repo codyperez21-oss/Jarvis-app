@@ -109,6 +109,12 @@
   .watch-action-row:first-of-type { border-top:none; }
   .watch-action-num { font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--gold); flex-shrink:0; }
   .watch-brief-week { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:14px; }
+
+  .watch-modal-box { display:flex; flex-direction:column; max-height:82vh; padding:0; overflow:hidden; }
+  .watch-modal-header { display:flex; justify-content:space-between; align-items:center; padding:20px 20px 14px; flex-shrink:0; }
+  .watch-modal-header .modal-title { margin-bottom:0; }
+  .watch-modal-close { width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--gray); font-size:16px; cursor:pointer; flex-shrink:0; }
+  .watch-modal-body { overflow-y:auto; padding:0 20px 24px; flex:1; }
 </style>
 </head>
 <body>
@@ -138,13 +144,17 @@
 </main>
 
 <div class="modal-overlay" id="peptideWatchModal">
-  <div class="modal-box">
-    <div class="modal-title">Peptide Watch</div>
-    <div id="watchCount" class="page-sub" style="margin-bottom:16px;">Loading…</div>
-    <div id="watchBriefSection"></div>
-    <div id="watchItemList"></div>
-    <div class="modal-actions" style="margin-top:20px;">
-      <div class="modal-btn" style="flex:1; text-align:center;" onclick="closePeptideWatchModal()">Close</div>
+  <div class="modal-box watch-modal-box">
+    <div class="watch-modal-header">
+      <div>
+        <div class="modal-title">Peptide Watch</div>
+        <div id="watchCount" class="page-sub">Loading…</div>
+      </div>
+      <div class="watch-modal-close" onclick="closePeptideWatchModal()">✕</div>
+    </div>
+    <div class="watch-modal-body">
+      <div id="watchBriefSection"></div>
+      <div id="watchItemList"></div>
     </div>
   </div>
 </div>
