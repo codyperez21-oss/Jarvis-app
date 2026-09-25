@@ -386,6 +386,67 @@ async function loadClinics() {
   }
 }
 
+const WATCH_URL = "https://affable-chachalaca.pikapod.net/webhook/peptide-watch-data";
+let peptideWatchLoaded = false;
+
+function openPeptideWatchModal() {
+  document.getElementById('peptideWatchModal').classList.add('open');
+  if (!peptideWatchLoaded) {
+    peptideWatchLoaded = true;
+    loadPeptideWatch();
+  }
+}
+
+function closePeptideWatchModal() {
+  document.getElementById('peptideWatchModal').classList.remove('open');
+}
+
+async function loadPeptideWatch() {
+  const listEl = document.getElementById('watchItemList');
+  const briefEl = document.getElementById('watchBriefSection');
+  try {
+    const response = await fetch(WATCH_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+
+    document.getElementById('watchCount').textContent = `${data.items.length} item${data.items.length !== 1 ? 's' : ''}`;
+
+    if (data.brief && data.brief.brief_text) {
+      let actions = [];
+      try { actions = typeof data.brief.recommended_actions === 'string' ? JSON.parse(data.brief.recommended_actions) : (data.brief.recommended_actions || []); } catch (e) {}
+      briefEl.innerHTML = `
+        <div class="watch-brief-section">
+          <div class="watch-brief-label">This Week's Brief</div>
+          <div class="watch-brief-text">${data.brief.brief_text}</div>
+          ${actions.length ? `
+            <div class="watch-actions-label">Recommended Actions</div>
+            ${actions.map((a, i) => `<div class="watch-action-row"><div class="watch-action-num">${i + 1}</div><div>${a}</div></div>`).join('')}
+          ` : ''}
+          <div class="watch-brief-week">Week of ${fmtDate(data.brief.week_of)}</div>
+        </div>
+      `;
+    }
+
+    if (!data.items || data.items.length === 0) {
+      listEl.innerHTML = '<div class="loading-note">Nothing new found yet — checks run weekly</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.items.map(i => `
+      <div class="watch-item-card">
+        <div class="watch-item-tag ${i.category}">${i.category}</div>
+        <div class="watch-item-title">${i.title}</div>
+        <div class="watch-item-summary">${i.summary}</div>
+        ${i.source_url ? `<a class="watch-item-link" href="${i.source_url}" target="_blank">View source →</a>` : ''}
+        <div class="watch-item-date">Found ${fmtDate(i.found_date)}</div>
+      </div>
+    `).join("");
+  } catch (err) {
+    document.getElementById('watchCount').textContent = "";
+    listEl.innerHTML = `<div class="error-note">Couldn't load: ${err.message}</div>`;
+  }
+}
+
 loadClinics();
 </script>
 
