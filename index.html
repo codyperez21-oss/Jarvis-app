@@ -215,6 +215,26 @@
   <div class="revenue-btn" onclick="openRevenueModal()">💰 Revenue Snapshot</div>
 </header>
 
+<div class="modal-overlay" id="weekSessionsModal">
+  <div class="modal-box">
+    <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Sessions This Week</span>
+      <span onclick="closeWeekSessionsModal()" style="cursor:pointer; font-size:20px; color:var(--gray); line-height:1;">✕</span>
+    </div>
+    <div id="weekSessionsContent"><div class="loading-note">Loading…</div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="packagesNearingModal">
+  <div class="modal-box">
+    <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Packages Nearing Completion</span>
+      <span onclick="closePackagesNearingModal()" style="cursor:pointer; font-size:20px; color:var(--gray); line-height:1;">✕</span>
+    </div>
+    <div id="packagesNearingContent"><div class="loading-note">Loading…</div></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="revenueModal">
   <div class="modal-box" id="revenueModalBox">
     <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
@@ -508,22 +528,22 @@ async function loadDashboard() {
 
     const m = data.metrics || {};
     document.getElementById('metricsGrid').innerHTML = `
-      <div class="metric-card">
+      <div class="metric-card" onclick="location.href='clients.html'">
         <div class="metric-num">${m.activeClientsTotal ?? '—'}</div>
         <div class="metric-label">Active Clients</div>
         <div class="metric-sub">${m.activeTrainingCount ?? 0} training · ${m.activeRecoveryCount ?? 0} recovery</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" onclick="openWeekSessionsModal()">
         <div class="metric-num">${m.sessionsCompletedThisWeek ?? '—'}</div>
         <div class="metric-label">Sessions This Week</div>
         <div class="metric-sub">${m.sessionsThisWeek ?? 0} total scheduled</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" onclick="location.href='clinics.html'">
         <div class="metric-num">${m.activeClinicsCount ?? '—'}</div>
         <div class="metric-label">Active Clinics</div>
         <div class="metric-sub">${m.clinicsNeedingContact ?? 0} need contact</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card" onclick="openPackagesNearingModal()">
         <div class="metric-num">${m.packagesNearingCompletion ?? '—'}</div>
         <div class="metric-label">Packages Nearing Completion</div>
         <div class="metric-sub">${m.followUpsDue ?? 0} follow-ups due</div>
@@ -792,6 +812,52 @@ function showMonthlyBreakdown() {
 
 function closeRevenueModal() {
   document.getElementById('revenueModal').classList.remove('open');
+}
+
+function openWeekSessionsModal() {
+  const data = window.latestDashboardData;
+  const contentEl = document.getElementById('weekSessionsContent');
+  const list = (data && data.weekSessionsList) || [];
+  if (list.length === 0) {
+    contentEl.innerHTML = '<div class="loading-note">Nothing scheduled this week.</div>';
+  } else {
+    contentEl.innerHTML = list.map(s => `
+      <div class="detail-row">
+        <div>
+          <div class="detail-name">${s.clientName}</div>
+          <div class="detail-sub">${s.dateLabel} · ${s.timeLabel} · ${typeLabel(s.type)}</div>
+        </div>
+        <div class="detail-badge ${(s.status || 'upcoming').toLowerCase().replace(' ', '-')}">${s.status}</div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('weekSessionsModal').classList.add('open');
+}
+function closeWeekSessionsModal() {
+  document.getElementById('weekSessionsModal').classList.remove('open');
+}
+
+function openPackagesNearingModal() {
+  const data = window.latestDashboardData;
+  const contentEl = document.getElementById('packagesNearingContent');
+  const list = (data && data.packagesNearingList) || [];
+  if (list.length === 0) {
+    contentEl.innerHTML = '<div class="loading-note">No packages nearing completion right now.</div>';
+  } else {
+    contentEl.innerHTML = list.map(p => `
+      <div class="detail-row">
+        <div>
+          <div class="detail-name">${p.clientName}</div>
+          <div class="detail-sub">${typeLabel(p.sessionType)} · ${p.sessionsPurchased} session package</div>
+        </div>
+        <div class="detail-badge upcoming">${p.sessionsRemaining} left</div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('packagesNearingModal').classList.add('open');
+}
+function closePackagesNearingModal() {
+  document.getElementById('packagesNearingModal').classList.remove('open');
 }
 
 async function updateNotifyToggleUI() {
