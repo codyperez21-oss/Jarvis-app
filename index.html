@@ -213,6 +213,7 @@
   </div>
   <div id="notifyToggle" class="notify-toggle" onclick="enablePushNotifications()">🔔 Enable Notifications</div>
   <div class="revenue-btn" onclick="openRevenueModal()">💰 Revenue Snapshot</div>
+  <div class="revenue-btn" onclick="showLatestWeeklyReview()">📊 Weekly Review</div>
 </header>
 
 <div class="modal-overlay" id="weekSessionsModal">
@@ -407,10 +408,17 @@ function closeMorningBriefModal() {
   if (overlay) overlay.remove();
 }
 
-function maybeShowWeeklyReview(reviewText, reviewDate) {
+function showLatestWeeklyReview() {
+  const d = window.latestDashboardData;
+  if (!d || !d.weeklyReview) { alert('No weekly review yet -- the next one arrives Monday at 7am.'); return; }
+  maybeShowWeeklyReview(d.weeklyReview, d.weeklyReviewDate, true);
+}
+
+function maybeShowWeeklyReview(reviewText, reviewDate, force) {
   if (!reviewText) return;
+  if (document.getElementById('reviewModalOverlay')) return;
   const key = reviewDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  if (localStorage.getItem('dismissedReviewDate') === key) return;
+  if (!force && localStorage.getItem('dismissedReviewDate') === key) return;
   const formatted = reviewText
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
