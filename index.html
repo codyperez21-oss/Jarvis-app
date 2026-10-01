@@ -70,12 +70,13 @@
 
   .revenue-detail-link { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); text-decoration:underline; text-align:center; margin-top:16px; cursor:pointer; }
   .modal-box.wide { max-width:480px; }
-  .chart-bars { display:flex; align-items:flex-end; gap:4px; height:160px; margin-top:20px; overflow-x:auto; padding-bottom:4px; }
-  .chart-bar-col { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:32px; }
+  .chart-bars { display:flex; align-items:flex-end; gap:4px; height:120px; margin-top:20px; overflow-x:auto; padding-bottom:4px; }
+  .chart-bar-col { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:32px; height:100%; }
+  .chart-bar-track { flex:1; display:flex; align-items:flex-end; }
   .chart-bar { width:20px; background:var(--gold-dim); border-radius:3px 3px 0 0; min-height:2px; }
   .chart-bar.has-revenue { background:var(--gold); }
-  .chart-bar-label { font-family:'DM Mono',monospace; font-size:8px; color:var(--gray); margin-top:6px; writing-mode:vertical-rl; text-orientation:mixed; }
-  .chart-bar-amount { font-family:'DM Mono',monospace; font-size:8px; color:var(--gold); margin-bottom:3px; }
+  .chart-bar-label { font-family:'DM Mono',monospace; font-size:8px; color:var(--gray); margin-top:4px; writing-mode:vertical-rl; text-orientation:mixed; }
+  .chart-bar-amount { font-family:'DM Mono',monospace; font-size:8px; color:var(--gold); margin-top:4px; white-space:nowrap; }
   .back-link { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); text-decoration:underline; cursor:pointer; margin-bottom:14px; display:inline-block; }
   .day-date { font-family:'Bebas Neue',sans-serif; font-size:clamp(40px,11vw,56px); letter-spacing:0.03em; color:var(--white); line-height:0.95; }
   .day-date span { color:var(--gold); }
@@ -808,8 +809,10 @@ function showMonthlyBreakdown() {
     <div class="chart-bars">
       ${breakdown.map(m => `
         <div class="chart-bar-col">
+          <div class="chart-bar-track">
+            <div class="chart-bar ${m.revenue > 0 ? 'has-revenue' : ''}" style="height:${Math.max((m.revenue / maxRevenue) * 100, 2)}%"></div>
+          </div>
           <div class="chart-bar-amount">${m.revenue > 0 ? fmtShort(m.revenue) : ''}</div>
-          <div class="chart-bar ${m.revenue > 0 ? 'has-revenue' : ''}" style="height:${Math.max((m.revenue / maxRevenue) * 120, 2)}px"></div>
           <div class="chart-bar-label">${fmtMonth(m.month)}</div>
         </div>
       `).join('')}
