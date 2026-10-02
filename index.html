@@ -1040,7 +1040,25 @@ document.getElementById('newConvoBtn').addEventListener('click', () => {
   try { localStorage.removeItem('jarvisConversationHistory'); } catch (e) {}
   chatMessagesEl.innerHTML = '<div class="msg assistant">What do you need? Add a client, log a session, add a clinic, log a touchpoint — just tell me.</div>';
 });
+
+(async function showBuildStamp() {
+  const el = document.getElementById('buildStamp');
+  if (!el) return;
+  try {
+    const res = await fetch('https://api.github.com/repos/codyperez21-oss/Jarvis-app/commits?path=index.html&per_page=1');
+    const data = await res.json();
+    const iso = data && data[0] && data[0].commit && data[0].commit.committer && data[0].commit.committer.date;
+    if (!iso) throw new Error('no date in response');
+    const d = new Date(iso);
+    const stamp = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    el.textContent = 'Build: ' + stamp;
+  } catch (e) {
+    el.textContent = '';
+  }
+})();
 </script>
+
+<div id="buildStamp" style="position:fixed; bottom:6px; right:10px; font-family:'DM Mono',monospace; font-size:9px; color:var(--gray); opacity:0.5; pointer-events:none; z-index:9999;"></div>
 
 </body>
 </html>
