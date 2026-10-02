@@ -377,6 +377,29 @@ async function handleAction(action, id, btnEl) {
   }
 }
 
+async function handleSendText(doneAction, itemId, btnEl) {
+  const item = (window.currentFocusItems || []).find(i => i.id === itemId);
+  if (!item || !item.phone || !item.draftMessage) { alert('Missing phone or message for this item.'); return; }
+  const card = btnEl.closest('.focus-card');
+  card.querySelectorAll('.focus-btn').forEach(b => b.disabled = true);
+  btnEl.textContent = 'Sending\u2026';
+  try {
+    const response = await fetch(ACTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ action: doneAction, id: itemId, sendText: true, phone: item.phone, message: item.draftMessage, clientName: item.clientName })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    setTimeout(loadDashboard, 600);
+  } catch (err) {
+    card.querySelectorAll('.focus-btn').forEach(b => b.disabled = false);
+    btnEl.textContent = 'Send Text';
+    alert("Couldn't send that text: " + err.message);
+  }
+}
+
 function maybeShowMorningBrief(briefText, briefDate) {
   if (!briefText) return;
   const key = briefDate || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
@@ -497,6 +520,7 @@ async function loadDashboard() {
     }
 
     const focusEl = document.getElementById('focusStack');
+    window.currentFocusItems = data.focusItems || [];
     if (!data.focusItems || data.focusItems.length === 0) {
       focusEl.innerHTML = '<div class="empty-note">Nothing needs your attention right now</div>';
     } else {
@@ -517,9 +541,9 @@ async function loadDashboard() {
               <textarea class="draft-message-input" rows="3" readonly onclick="this.select()">${item.draftMessage}</textarea>
               <div class="focus-actions">
                 <button class="focus-btn done" onclick="selectDraft(this)">Select Text</button>
-                ${item.actionType === 'recovery_reachout' ? `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>` : ''}
-                ${item.actionType === 'session_confirmation' ? `<button class="focus-btn done" onclick="handleAction('session_confirmation_done', '${item.id}', this)">Sent</button>` : ''}
-                ${item.actionType === 'day_after_checkin' ? `<button class="focus-btn done" onclick="handleAction('day_after_checkin_done', '${item.id}', this)">Sent</button>` : ''}
+                ${item.actionType === 'recovery_reachout' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('recovery_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>`) : ''}
+                ${item.actionType === 'session_confirmation' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('session_confirmation_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('session_confirmation_done', '${item.id}', this)">Sent</button>`) : ''}
+                ${item.actionType === 'day_after_checkin' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('day_after_checkin_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('day_after_checkin_done', '${item.id}', this)">Sent</button>`) : ''}
                 <button class="focus-btn snooze" onclick="handleAction('${snoozeActionFor(item.actionType)}', '${item.id}', this)">Snooze</button>
               </div>
             ` : `
