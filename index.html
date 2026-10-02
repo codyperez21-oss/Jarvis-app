@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Jarvis — Today</title>
+<title>Meridian — Today</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -283,21 +283,21 @@
   </div>
   <div class="chat-panel">
     <div class="chat-panel-label" style="display:flex; justify-content:space-between; align-items:center;">
-      <span>Tell Jarvis</span>
+      <span>Tell Meridian</span>
       <span id="newConvoBtn" style="cursor:pointer; text-decoration:underline; opacity:0.7;">New conversation</span>
     </div>
     <div id="chatMessages">
       <div class="msg assistant">What do you need? Add a client, log a session, add a clinic, log a touchpoint — just tell me.</div>
     </div>
     <div id="chatInputRow">
-      <textarea id="chatInput" rows="1" placeholder="Tell Jarvis what you need..."></textarea>
+      <textarea id="chatInput" rows="1" placeholder="Tell Meridian what you need..."></textarea>
       <button id="chatSend">Send</button>
     </div>
   </div>
 </main>
 
 <footer>
-  <div class="footer-label" id="footerLabel">Jarvis · Loading…</div>
+  <div class="footer-label" id="footerLabel">Meridian · Loading…</div>
 </footer>
 
 <script>
@@ -559,7 +559,7 @@ async function loadDashboard() {
       </div>
     `;
 
-    document.getElementById('footerLabel').textContent = 'Jarvis · Updated just now';
+    document.getElementById('footerLabel').textContent = 'Meridian · Updated just now';
 
     const oppEl = document.getElementById('opportunitiesList');
     if (!data.opportunities || data.opportunities.length === 0) {
@@ -575,7 +575,7 @@ async function loadDashboard() {
   } catch (err) {
     document.getElementById('timeline').innerHTML = `<div class="error-note">Couldn't load your schedule: ${err.message}</div>`;
     document.getElementById('focusStack').innerHTML = '';
-    document.getElementById('footerLabel').textContent = 'Jarvis · Connection error';
+    document.getElementById('footerLabel').textContent = 'Meridian · Connection error';
   }
 }
 
@@ -1016,7 +1016,7 @@ async function handleChatSend() {
     if (changedData) setTimeout(loadDashboard, 500);
   } catch (err) {
     hideChatTyping();
-    addChatMessage('assistant', "⚠️ Couldn't reach Jarvis: " + err.message);
+    addChatMessage('assistant', "⚠️ Couldn't reach Meridian: " + err.message);
   }
 
   chatSendEl.disabled = false;
