@@ -17,11 +17,17 @@
     --white: #f0ece4; --gray: #666; --gray-dim: #444;
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:40px; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px)); }
 
-  nav { display:flex; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-  nav a { flex:1; text-align:center; padding:14px 0; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; text-decoration:none; color:var(--gray); border-bottom:2px solid transparent; }
-  nav a.active { color:var(--gold); border-bottom-color:var(--gold); }
+  .bottom-nav { position:fixed; left:0; right:0; bottom:0; display:flex; border-top:1px solid var(--border); background:#0e0e0e; padding:10px 6px calc(16px + env(safe-area-inset-bottom, 0px)); z-index:50; }
+  .bottom-nav a { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; text-decoration:none; }
+  .bottom-nav a svg circle { fill:var(--gray); }
+  .bottom-nav a.active svg circle { fill:var(--teal); }
+  .bottom-nav a span { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.04em; color:var(--gray); }
+  .bottom-nav a.active span { color:var(--teal); }
+
+  .fab { position:fixed; right:18px; bottom:calc(96px + env(safe-area-inset-bottom, 0px)); width:52px; height:52px; border-radius:50%; background:var(--gold); border:none; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(201,168,76,0.4); z-index:51; text-decoration:none; }
+  .fab:active { opacity:0.8; }
 
   header { padding:28px 20px 20px; border-bottom:1px solid var(--border); }
   .eyebrow { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.3em; color:var(--teal); text-transform:uppercase; margin-bottom:4px; }
@@ -54,14 +60,6 @@
 </style>
 </head>
 <body>
-
-<nav>
-  <a href="index.html">Dashboard</a>
-  <a href="clients.html">Clients</a>
-  <a href="clinics.html">Clinics</a>
-  <a href="recovery-watch.html" class="active">Recovery Watch</a>
-  <a href="nido.html">Nido</a>
-</nav>
 
 <header>
   <div class="eyebrow">Industry Watch</div>
@@ -132,6 +130,18 @@ async function loadItems() {
 
 loadItems();
 </script>
+
+<a class="fab" href="index.html" aria-label="Tell Meridian">
+  <svg width="24" height="24" viewBox="0 0 64 64"><path d="M6 32 Q16 23 20 32 Q22 37 24 10 L27 54 Q29 40 34 32 Q42 24 58 32" stroke="#0a0a0a" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</a>
+
+<nav class="bottom-nav">
+  <a href="index.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Home</span></a>
+  <a href="clients.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clients</span></a>
+  <a href="clinics.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clinics</span></a>
+  <a href="recovery-watch.html" class="active"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Recovery</span></a>
+  <a href="nido.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Nido</span></a>
+</nav>
 
 </body>
 </html>
