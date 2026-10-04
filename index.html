@@ -326,6 +326,7 @@ function selectDraft(btnEl) {
   textarea.focus();
   textarea.select();
   // Mobile Safari/Chrome sometimes need setSelectionRange explicitly
+  textarea.style.height = 'auto';
   textarea.setSelectionRange(0, textarea.value.length);
 }
 
@@ -439,7 +440,7 @@ function maybeShowWeeklyReview(reviewText, reviewDate, force) {
   const formatted = reviewText
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>');
+    .replace(/\n/g, '<br>')
   const overlay = document.createElement('div');
   overlay.className = 'brief-modal-overlay';
   overlay.id = 'reviewModalOverlay';
@@ -640,6 +641,22 @@ async function loadConfirmations() {
       }
       let options = [];
       try { options = typeof c.options === 'string' ? JSON.parse(c.options) : (c.options || []); } catch (e) {}
+      if (c.flow_type === 'session_completion') {
+        return `
+        <div class="confirmation-card" id="confirmation-${c.id}">
+          <div class="confirmation-title">${c.title}</div>
+          <div class="confirmation-inputs">
+            <label class="confirmation-input-label">What happened? (required to mark Completed)</label>
+            <textarea class="draft-message-input" id="notes-${c.id}" rows="2" placeholder="What was worked on, how did the client respond or feel?"></textarea>
+          </div>
+          <div class="confirmation-actions">
+            <button class="confirmation-btn" onclick="resolveSessionCompletion('${c.id}', this)">Completed</button>
+            <button class="confirmation-btn neutral" onclick="resolveConfirmation('${c.id}', 'No Show', this)">No Show</button>
+            <button class="confirmation-btn negative" onclick="resolveConfirmation('${c.id}', 'Canceled', this)">Canceled</button>
+          </div>
+        </div>
+      `;
+      }
       return `
       <div class="confirmation-card" id="confirmation-${c.id}">
         <div class="confirmation-title">${c.title}</div>
@@ -687,6 +704,44 @@ async function submitConfirmationInput(confirmationId, keys, btnEl) {
   }
 }
 
+async function resolveSessionCompletion(confirmationId, btnEl) {
+  const card = document.getElementById(`confirmation-${confirmationId}`);
+  const notesEl = document.getElementById(`notes-${confirmationId}`);
+  const notes = notesEl ? notesEl.value.trim() : '';
+  if (!notes) {
+    notesEl.focus();
+    let errorEl = card.querySelector('.confirmation-error');
+    if (!errorEl) {
+      errorEl = document.createElement('div');
+      errorEl.className = 'confirmation-error';
+    }
+    errorEl.textContent = "Add a quick note on what happened before marking this Completed.";
+    card.appendChild(errorEl);
+    return;
+  }
+  card.querySelectorAll('.confirmation-btn, .confirmation-input, textarea').forEach(b => b.disabled = true);
+  try {
+    const response = await fetch(CONFIRMATIONS_RESOLVE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ confirmationId, action: 'Completed', inputValues: { notes } })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    setTimeout(loadConfirmations, 500);
+  } catch (err) {
+    card.querySelectorAll('.confirmation-btn, .confirmation-input, textarea').forEach(b => b.disabled = false);
+    let errorEl = card.querySelector('.confirmation-error');
+    if (!errorEl) {
+      errorEl = document.createElement('div');
+      errorEl.className = 'confirmation-error';
+      card.appendChild(errorEl);
+    }
+    errorEl.textContent = "\u26a0\ufe0f Couldn't submit: " + err.message;
+  }
+}
+
 async function resolveConfirmation(confirmationId, action, btnEl) {
   const card = document.getElementById(`confirmation-${confirmationId}`);
   card.querySelectorAll('.confirmation-btn').forEach(b => b.disabled = true);
@@ -708,7 +763,7 @@ async function resolveConfirmation(confirmationId, action, btnEl) {
       errorEl.className = 'confirmation-error';
       card.appendChild(errorEl);
     }
-    errorEl.textContent = "⚠️ Couldn't complete that action: " + err.message;
+    errorEl.textContent = "⚠️ Couldn't complete a copieff action: " + err.message;
   }
 }
 
@@ -726,7 +781,7 @@ function urlBase64ToUint8Array(base64String) {
 
 function openRevenueModal() {
   showRevenueSnapshot();
-  document.getElementById('revenueModal').classList.add('open');
+  document.getElementById('revenueModalBox').classList.add('open');
 }
 
 function showRevenueSnapshot() {
