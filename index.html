@@ -657,6 +657,22 @@ async function loadConfirmations() {
         </div>
       `;
       }
+      if (c.flow_type === 'confirmation_check') {
+        return `
+        <div class="confirmation-card" id="confirmation-${c.id}">
+          <div class="confirmation-title">${c.title}</div>
+          <div class="confirmation-inputs">
+            <label class="confirmation-input-label">What dates did they offer? (only needed for Reschedule)</label>
+            <textarea class="draft-message-input" id="dates-${c.id}" rows="2" placeholder="e.g. Thursday afternoon or Friday after 2pm"></textarea>
+          </div>
+          <div class="confirmation-actions">
+            <button class="confirmation-btn" onclick="resolveConfirmation('${c.id}', 'Yes', this)">Yes</button>
+            <button class="confirmation-btn negative" onclick="resolveConfirmation('${c.id}', 'No', this)">No</button>
+            <button class="confirmation-btn neutral" onclick="resolveReschedule('${c.id}', this)">Reschedule</button>
+          </div>
+        </div>
+      `;
+      }
       return `
       <div class="confirmation-card" id="confirmation-${c.id}">
         <div class="confirmation-title">${c.title}</div>
@@ -742,6 +758,44 @@ async function resolveSessionCompletion(confirmationId, btnEl) {
   }
 }
 
+async function resolveReschedule(confirmationId, btnEl) {
+  const card = document.getElementById(`confirmation-${confirmationId}`);
+  const datesEl = document.getElementById(`dates-${confirmationId}`);
+  const dates = datesEl ? datesEl.value.trim() : '';
+  if (!dates) {
+    datesEl.focus();
+    let errorEl = card.querySelector('.confirmation-error');
+    if (!errorEl) {
+      errorEl = document.createElement('div');
+      errorEl.className = 'confirmation-error';
+      card.appendChild(errorEl);
+    }
+    errorEl.textContent = "Add the dates they offered before marking this Reschedule.";
+    return;
+  }
+  card.querySelectorAll('.confirmation-btn, .confirmation-input, textarea').forEach(b => b.disabled = true);
+  try {
+    const response = await fetch(CONFIRMATIONS_RESOLVE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ confirmationId, action: 'Reschedule', inputValues: { dates } })
+    });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    card.style.opacity = '0.3';
+    card.style.pointerEvents = 'none';
+    setTimeout(loadConfirmations, 500);
+  } catch (err) {
+    card.querySelectorAll('.confirmation-btn, .confirmation-input, textarea').forEach(b => b.disabled = false);
+    let errorEl = card.querySelector('.confirmation-error');
+    if (!errorEl) {
+      errorEl = document.createElement('div');
+      errorEl.className = 'confirmation-error';
+      card.appendChild(errorEl);
+    }
+    errorEl.textContent = "\u26a0\ufe0f Couldn't submit: " + err.message;
+  }
+}
+
 async function resolveConfirmation(confirmationId, action, btnEl) {
   const card = document.getElementById(`confirmation-${confirmationId}`);
   card.querySelectorAll('.confirmation-btn').forEach(b => b.disabled = true);
@@ -763,7 +817,7 @@ async function resolveConfirmation(confirmationId, action, btnEl) {
       errorEl.className = 'confirmation-error';
       card.appendChild(errorEl);
     }
-    errorEl.textContent = "⚠️ Couldn't complete a copieff action: " + err.message;
+    errorEl.textContent = "⚠️ Couldn't complete that action: " + err.message;
   }
 }
 
