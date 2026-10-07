@@ -1,4 +1,4 @@
-// Meridian service worker — handles incoming push notifications and notification taps
+// Talos service worker — handles incoming push notifications and notification taps
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -13,7 +13,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'Meridian', body: 'You have a new update.' };
+  let data = { title: 'Talos', body: 'You have a new update.' };
   try {
     if (event.data) data = event.data.json();
   } catch (e) {
