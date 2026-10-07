@@ -1,6 +1,6 @@
 {
-  "name": "Meridian — RVLTN Performance",
-  "short_name": "Meridian",
+  "name": "Talos — RVLTN Performance",
+  "short_name": "Talos",
   "description": "Executive assistant for RVLTN Performance — clients, clinics, scheduling, and business intelligence.",
   "start_url": "index.html",
   "scope": "./",
