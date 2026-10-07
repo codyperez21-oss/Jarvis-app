@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Meridian — Today</title>
+<title>Talos — Today</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -198,7 +198,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">RVLTN Performance</div>
+  <div class="eyebrow">Talos</div>
   <div class="day-date" id="dayDate">— <span>—</span></div>
   <div class="day-stats">
     <div class="stat"><div class="stat-num" id="statSessions">—</div><div class="stat-label">Sessions Today</div></div>
@@ -276,21 +276,21 @@
   </div>
   <div class="chat-panel">
     <div class="chat-panel-label" style="display:flex; justify-content:space-between; align-items:center;">
-      <span>Tell Meridian</span>
+      <span>Tell Talos</span>
       <span id="newConvoBtn" style="cursor:pointer; text-decoration:underline; opacity:0.7;">New conversation</span>
     </div>
     <div id="chatMessages">
       <div class="msg assistant">What do you need? Add a client, log a session, add a clinic, log a touchpoint — just tell me.</div>
     </div>
     <div id="chatInputRow">
-      <textarea id="chatInput" rows="1" placeholder="Tell Meridian what you need..."></textarea>
+      <textarea id="chatInput" rows="1" placeholder="Tell Talos what you need..."></textarea>
       <button id="chatSend">Send</button>
     </div>
   </div>
 </main>
 
 <footer>
-  <div class="footer-label" id="footerLabel">Meridian · Loading…</div>
+  <div class="footer-label" id="footerLabel">Talos · Loading…</div>
 </footer>
 
 <script>
@@ -577,7 +577,7 @@ async function loadDashboard() {
       </div>
     `;
 
-    document.getElementById('footerLabel').textContent = 'Meridian · Updated just now';
+    document.getElementById('footerLabel').textContent = 'Talos · Updated just now';
 
     const oppEl = document.getElementById('opportunitiesList');
     if (!data.opportunities || data.opportunities.length === 0) {
@@ -593,7 +593,7 @@ async function loadDashboard() {
   } catch (err) {
     document.getElementById('timeline').innerHTML = `<div class="error-note">Couldn't load your schedule: ${err.message}</div>`;
     document.getElementById('focusStack').innerHTML = '';
-    document.getElementById('footerLabel').textContent = 'Meridian · Connection error';
+    document.getElementById('footerLabel').textContent = 'Talos · Connection error';
   }
 }
 
@@ -1142,7 +1142,7 @@ async function handleChatSend() {
     if (changedData) setTimeout(loadDashboard, 500);
   } catch (err) {
     hideChatTyping();
-    addChatMessage('assistant', "⚠️ Couldn't reach Meridian: " + err.message);
+    addChatMessage('assistant', "⚠️ Couldn't reach Talos: " + err.message);
   }
 
   chatSendEl.disabled = false;
@@ -1186,7 +1186,7 @@ document.getElementById('newConvoBtn').addEventListener('click', () => {
 
 <div id="buildStamp" style="position:fixed; bottom:calc(100px + env(safe-area-inset-bottom, 0px)); right:10px; font-family:'DM Mono',monospace; font-size:9px; color:var(--gray); opacity:0.5; pointer-events:none; z-index:9999;"></div>
 
-<button class="fab" onclick="document.getElementById('chatInput').scrollIntoView({behavior:'smooth', block:'center'}); document.getElementById('chatInput').focus();" aria-label="Tell Meridian">
+<button class="fab" onclick="document.getElementById('chatInput').scrollIntoView({behavior:'smooth', block:'center'}); document.getElementById('chatInput').focus();" aria-label="Tell Talos">
   <svg width="24" height="24" viewBox="0 0 64 64"><path d="M6 32 Q16 23 20 32 Q22 37 24 10 L27 54 Q29 40 34 32 Q42 24 58 32" stroke="#0a0a0a" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 </button>
 
