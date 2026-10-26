@@ -16,7 +16,7 @@
   :root {
     --black: #0a0a0a; --card: #181818; --card-raised: #1e1e1e; --border: #2a2a2a;
     --gold: #c9a84c; --gold-dim: #8a6f2e; --red: #d94040; --teal: #2db3a0;
-    --amber: #e0983a; --grape: #9b6bd6; --white: #f0ece4; --gray: #666; --gray-dim: #444;
+    --amber: #e0983a; --grape: #9b6bd6; --white: #f0ece4; --gray: #8a8a8a; --gray-dim: #444; --text-dim: #8a8a8a;
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px)); }
@@ -25,36 +25,36 @@
   .bottom-nav a { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; text-decoration:none; }
   .bottom-nav a svg circle { fill:var(--gray); }
   .bottom-nav a.active svg circle { fill:var(--gold); }
-  .bottom-nav a span { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.04em; color:var(--gray); }
+  .bottom-nav a span { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.04em; color:var(--gray); }
   .bottom-nav a.active span { color:var(--gold); }
 
   .fab { position:fixed; right:18px; bottom:calc(96px + env(safe-area-inset-bottom, 0px)); width:52px; height:52px; border-radius:50%; background:var(--gold); border:none; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(201,168,76,0.4); cursor:pointer; z-index:51; }
   .fab:active { opacity:0.8; }
 
   header { padding:calc(20px + env(safe-area-inset-top, 0px)) 20px 20px; border-bottom:1px solid var(--border); }
-  .eyebrow { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.3em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:6px; }
-  .notify-toggle { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); margin-top:14px; padding:8px 12px; border:1px solid var(--border); border-radius:6px; display:inline-block; cursor:pointer; }
+  .eyebrow { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.3em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:6px; }
+  .notify-toggle { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; color:var(--gray); margin-top:14px; padding:8px 12px; border:1px solid var(--border); border-radius:6px; display:inline-block; cursor:pointer; }
   .notify-toggle.enabled { color:var(--teal); border-color:rgba(45,179,160,0.35); }
   .notify-toggle.unsupported { opacity:0.4; cursor:default; }
 
   .metrics-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:16px; }
   .metric-card { background:var(--card); border-radius:14px; padding:14px 16px; }
   .metric-num { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--gold); line-height:1; }
-  .metric-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.08em; color:var(--gray); text-transform:uppercase; margin-top:5px; }
-  .metric-sub { font-family:'DM Mono',monospace; font-size:10.5px; color:var(--gray); margin-top:4px; font-weight:500; }
+  .metric-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.08em; color:var(--gray); text-transform:uppercase; margin-top:5px; }
+  .metric-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; font-weight:500; }
   .metric-card { cursor:pointer; transition:border-color 0.15s; }
   .metric-card:active { border-color:var(--gold-dim); }
 
   .detail-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-top:1px solid var(--border); }
   .detail-row:first-of-type { border-top:none; }
   .detail-name { font-size:14px; font-weight:600; color:var(--white); }
-  .detail-sub { font-family:'DM Mono',monospace; font-size:10.5px; color:var(--gray); margin-top:2px; }
-  .detail-badge { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; padding:3px 9px; border-radius:4px; white-space:nowrap; }
+  .detail-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:2px; }
+  .detail-badge { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; padding:3px 9px; border-radius:4px; white-space:nowrap; }
   .detail-badge.completed { background:rgba(45,179,160,0.15); color:var(--teal); border:1px solid rgba(45,179,160,0.3); }
   .detail-badge.upcoming { background:rgba(201,168,76,0.1); color:var(--gold-dim); border:1px solid rgba(201,168,76,0.25); }
   .detail-badge.canceled, .detail-badge.no-show { background:rgba(217,64,64,0.12); color:var(--red); border:1px solid rgba(217,64,64,0.3); }
 
-  .revenue-btn { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gold); margin-top:14px; margin-left:10px; padding:8px 12px; border:1px solid rgba(201,168,76,0.35); border-radius:6px; display:inline-block; cursor:pointer; }
+  .revenue-btn { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; color:var(--gold); margin-top:14px; margin-left:10px; padding:8px 12px; border:1px solid rgba(201,168,76,0.35); border-radius:6px; display:inline-block; cursor:pointer; }
   .revenue-btn:active { opacity:0.6; }
 
   .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.75); z-index:100; align-items:center; justify-content:center; padding:20px; }
@@ -65,7 +65,7 @@
   .revenue-row:first-of-type { border-top:none; }
   .revenue-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em; }
   .revenue-amount { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--gold); }
-  .revenue-note { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray-dim); margin-top:16px; line-height:1.5; }
+  .revenue-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:16px; line-height:1.5; }
   .modal-close-btn { width:100%; margin-top:18px; padding:12px; background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--gray); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; cursor:pointer; }
 
   .brief-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999; display:flex; align-items:center; justify-content:center; padding:24px; }
@@ -74,31 +74,31 @@
   .brief-modal-text { color:var(--white); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.65; margin-bottom:22px; }
   .brief-modal-close { width:100%; background:var(--teal); border:none; color:#0a0a0a; border-radius:7px; padding:13px; font-weight:600; font-size:14px; font-family:'DM Sans',sans-serif; cursor:pointer; }
 
-  .revenue-detail-link { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); text-decoration:underline; text-align:center; margin-top:16px; cursor:pointer; }
+  .revenue-detail-link { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; color:var(--gray); text-decoration:underline; text-align:center; margin-top:16px; cursor:pointer; }
   .modal-box.wide { max-width:480px; }
   .chart-bars { display:flex; align-items:flex-end; gap:4px; height:120px; margin-top:20px; overflow-x:auto; padding-bottom:4px; }
   .chart-bar-col { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:32px; height:100%; }
   .chart-bar-track { flex:1; display:flex; align-items:flex-end; }
   .chart-bar { width:20px; background:var(--gold-dim); border-radius:3px 3px 0 0; min-height:2px; }
   .chart-bar.has-revenue { background:var(--gold); }
-  .chart-bar-label { font-family:'DM Mono',monospace; font-size:8px; color:var(--gray); margin-top:4px; writing-mode:vertical-rl; text-orientation:mixed; }
-  .chart-bar-amount { font-family:'DM Mono',monospace; font-size:8px; color:var(--gold); margin-top:4px; white-space:nowrap; }
-  .back-link { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); text-decoration:underline; cursor:pointer; margin-bottom:14px; display:inline-block; }
+  .chart-bar-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; writing-mode:vertical-rl; text-orientation:mixed; }
+  .chart-bar-amount { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold); margin-top:4px; white-space:nowrap; }
+  .back-link { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); text-decoration:underline; cursor:pointer; margin-bottom:14px; display:inline-block; }
   .day-date { font-family:'Bebas Neue',sans-serif; font-size:clamp(40px,11vw,56px); letter-spacing:0.03em; color:var(--white); line-height:0.95; }
   .day-date span { color:var(--gold); }
   .day-stats { display:flex; gap:18px; margin-top:14px; }
   .stat { display:flex; flex-direction:column; }
   .stat-num { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); line-height:1; }
-  .stat-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin-top:3px; }
+  .stat-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin-top:3px; }
 
   .quote-block { margin:24px 20px 0; padding:18px 20px; background:var(--card); border-left:2px solid var(--gold-dim); border-radius:4px; }
-  .quote-tag { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:8px; }
+  .quote-tag { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:8px; }
   .quote-text { font-size:15px; font-style:italic; line-height:1.5; color:var(--white); }
-  .quote-attr { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:8px; }
+  .quote-attr { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:8px; }
 
   main { padding:0 20px; max-width:640px; margin:0 auto; }
 
-  .section-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.25em; color:var(--gold-dim); text-transform:uppercase; margin:28px 0 14px; display:flex; align-items:center; gap:10px; }
+  .section-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.25em; color:var(--gold-dim); text-transform:uppercase; margin:28px 0 14px; display:flex; align-items:center; gap:10px; }
   .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
 
   .timeline { display:flex; flex-direction:column; gap:1px; background:var(--border); border-radius:2px; overflow:hidden; }
@@ -110,7 +110,7 @@
   .tl-bar.clinic { background:var(--grape); }
   .tl-bar.personal { background:var(--gold-dim); }
   .tl-name { font-size:15px; font-weight:500; color:var(--white); }
-  .tl-type { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; margin-top:2px; }
+  .tl-type { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; margin-top:2px; }
   .tl-type.training { color:var(--red); } .tl-type.recovery { color:var(--teal); }
   .tl-type.clinic { color:var(--grape); } .tl-type.personal { color:var(--gold-dim); }
   .tl-loc { width:30px; height:30px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--gray); font-size:13px; flex-shrink:0; }
@@ -125,14 +125,14 @@
   .focus-rank { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gray-dim); line-height:1; min-width:22px; }
   .focus-card:first-child .focus-rank { color:var(--amber); }
   .focus-body { flex:1; }
-  .focus-category { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:4px; }
+  .focus-category { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:4px; }
   .focus-category.decision { color:var(--amber); }
   .focus-category.action { color:var(--teal); }
   .focus-category.followup { color:var(--gold-dim); }
   .focus-category.fyi { color:var(--gray); }
   .focus-title { font-size:14.5px; font-weight:600; color:var(--white); margin-bottom:3px; }
   .focus-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
-  .focus-tag { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; border-radius:3px; white-space:nowrap; }
+  .focus-tag { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; border-radius:3px; white-space:nowrap; }
   .focus-tag.urgent, .focus-tag.Clinic { background:rgba(224,152,58,0.15); color:var(--amber); border:1px solid rgba(224,152,58,0.3); }
   .focus-tag.pending, .focus-tag.Renewal { background:rgba(201,168,76,0.1); color:var(--gold-dim); border:1px solid rgba(201,168,76,0.25); }
   .focus-tag.Follow-Up { background:rgba(102,102,102,0.15); color:var(--gray); border:1px solid rgba(102,102,102,0.3); }
@@ -144,19 +144,19 @@
 
   .confirmation-card { background:var(--card); border:1px solid rgba(45,179,160,0.25); border-radius:8px; padding:14px 16px; margin-bottom:10px; }
   .confirmation-inputs { display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
-  .confirmation-input-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); margin-top:8px; }
+  .confirmation-input-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); margin-top:8px; }
   .confirmation-input-label:first-child { margin-top:0; }
   .confirmation-input { background:#101010; border:1px solid var(--border); border-radius:5px; padding:9px 12px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; }
   .confirmation-input:focus { border-color:var(--teal); }
   .confirmation-input:disabled { opacity:0.4; }
   .confirmation-title { font-size:14px; color:var(--white); margin-bottom:10px; line-height:1.4; }
   .confirmation-actions { display:flex; gap:8px; flex-wrap:wrap; }
-  .confirmation-btn { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; text-transform:uppercase; padding:7px 14px; border-radius:5px; border:1px solid var(--teal); color:var(--teal); background:transparent; cursor:pointer; }
+  .confirmation-btn { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; padding:7px 14px; border-radius:5px; border:1px solid var(--teal); color:var(--teal); background:transparent; cursor:pointer; }
   .confirmation-btn:active { opacity:0.6; }
   .confirmation-btn:disabled { opacity:0.3; }
   .confirmation-btn.negative { border-color:var(--red); color:var(--red); }
   .confirmation-btn.neutral { border-color:var(--gray); color:var(--gray); }
-  .confirmation-error { font-family:'DM Mono',monospace; font-size:10px; color:var(--red); margin-top:10px; }
+  .confirmation-error { font-family:'DM Mono',monospace; font-size:11px; color:var(--red); margin-top:10px; }
   .focus-actions { display:flex; gap:8px; margin-top:12px; }
   .focus-btn { font-family:'DM Sans',sans-serif; font-weight:600; font-size:12px; padding:9px 14px; border-radius:10px; border:none; background:var(--card); color:var(--gray); cursor:pointer; }
   .focus-btn.done { background:var(--teal); color:#0a0a0a; }
@@ -164,25 +164,25 @@
   .focus-btn:active { opacity:0.6; }
   .focus-btn:disabled { opacity:0.3; }
   .draft-message-box { background:#101010; border:1px solid var(--border); border-radius:4px; padding:10px 12px; margin-top:8px; font-size:12.5px; color:var(--white); line-height:1.4; font-style:italic; }
-  .draft-message-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin-bottom:4px; }
+  .draft-message-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin-bottom:4px; }
   .draft-message-input { width:100%; background:#101010; border:1px solid var(--border); border-radius:4px; padding:10px 12px; margin-top:8px; font-size:12.5px; color:var(--white); line-height:1.4; font-style:italic; font-family:'DM Sans',sans-serif; resize:none; }
-  .draft-message-hint { font-family:'DM Mono',monospace; font-size:8px; color:var(--gray-dim); margin-top:4px; }
+  .draft-message-hint { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; }
 
-  .empty-note, .loading-note, .error-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-dim); padding:20px 0; text-align:center; }
+  .empty-note, .loading-note, .error-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); padding:20px 0; text-align:center; }
   .error-note { color:var(--red); }
 
   footer { margin-top:36px; padding:20px; text-align:center; }
-  .footer-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.25em; color:var(--gray-dim); text-transform:uppercase; }
+  .footer-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.25em; color:var(--gray); text-transform:uppercase; }
 
   .chat-panel { margin-top:28px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-  .chat-panel-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--card); }
+  .chat-panel-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--card); }
   #chatMessages { max-height:360px; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; background:var(--black); }
   .msg { max-width:85%; padding:10px 13px; border-radius:10px; font-size:13.5px; line-height:1.5; white-space:pre-wrap; }
   .msg.user { align-self:flex-end; background:var(--gold-dim); color:var(--black); border-bottom-right-radius:2px; }
   .msg.assistant { align-self:flex-start; background:var(--card-raised); border:1px solid var(--border); border-bottom-left-radius:2px; }
   .msg.action { align-self:flex-start; background:rgba(45,179,160,0.08); border:1px solid rgba(45,179,160,0.3); border-radius:10px; padding:11px 13px; }
-  .action-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--teal); text-transform:uppercase; margin-bottom:5px; }
-  .action-detail { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); line-height:1.6; }
+  .action-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; color:var(--teal); text-transform:uppercase; margin-bottom:5px; }
+  .action-detail { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); line-height:1.6; }
   .action-detail b { color:var(--white); font-weight:500; }
   .chat-typing { align-self:flex-start; display:flex; gap:4px; padding:10px 13px; }
   .chat-typing span { width:5px; height:5px; border-radius:50%; background:var(--gray); animation:bounce 1.2s infinite; }
@@ -193,6 +193,48 @@
   #chatInput:focus { border-color:var(--gold-dim); }
   #chatSend { background:var(--gold); color:var(--black); border:none; border-radius:8px; padding:0 16px; font-family:'DM Sans',sans-serif; font-weight:600; font-size:12px; cursor:pointer; }
   #chatSend:disabled { opacity:0.4; cursor:default; }
+
+  /* ---- Apollo UI review pass ---- */
+  /* B1: one content width. Header content aligns with the 640px column; border still spans the screen */
+  header { padding-left:max(20px, calc((100% - 640px) / 2 + 20px)); padding-right:max(20px, calc((100% - 640px) / 2 + 20px)); }
+  .eyebrow { color:var(--gold); }
+  /* B7: status dot instead of an emoji button */
+  .notify-toggle { display:inline-flex; align-items:center; gap:8px; border:none; padding:10px 0; margin-top:10px; min-height:44px; color:var(--gray); }
+  .notify-toggle .dot { width:7px; height:7px; border-radius:50%; background:var(--gray-dim); flex-shrink:0; }
+  .notify-toggle.enabled { color:var(--gray); border:none; }
+  .notify-toggle.enabled .dot { background:var(--teal); }
+  .chips { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+  .chip-btn { display:inline-flex; align-items:center; gap:8px; font-family:'DM Mono',monospace; font-size:12px; letter-spacing:0.04em; color:var(--gold); padding:0 14px; min-height:44px; border:1px solid rgba(201,168,76,0.35); border-radius:6px; cursor:pointer; }
+  .chip-btn svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+  .chip-btn:active { opacity:0.6; }
+  .revenue-btn { display:none; }
+  /* B3: Needs you */
+  #needsYou { display:none; }
+  .timeline:has(.timeline-empty) { background:transparent; }
+  #needsYou .section-label { margin-top:22px; }
+  #confirmationsList { display:flex; flex-direction:column; margin-top:10px; }
+  #confirmationsList:empty { margin-top:0; }
+  .focus-tag.Apollo { background:linear-gradient(90deg, rgba(155,107,214,0.18), rgba(201,168,76,0.18)); color:var(--white); border:1px solid rgba(155,107,214,0.4); }
+  .focus-card.link { cursor:pointer; }
+  /* B6: calm empty Today */
+  .timeline-empty { background:var(--card); border-radius:14px; padding:18px 18px; font-family:'DM Mono',monospace; font-size:12.5px; color:var(--gray); line-height:1.6; }
+  .timeline-empty b { color:var(--white); font-weight:500; }
+  /* B4: quote lives at the bottom now */
+  .quote-block { margin:34px 0 0; }
+  /* B5: Tell Talos bottom sheet */
+  .sheet-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:110; }
+  .sheet-overlay.open { display:block; }
+  .chat-panel { position:fixed; left:0; right:0; bottom:0; z-index:120; margin:0 auto; max-width:640px; max-height:82vh; display:flex; flex-direction:column; border:1px solid var(--border); border-bottom:none; border-radius:16px 16px 0 0; background:var(--black); transform:translateY(105%); visibility:hidden; transition:transform 0.22s ease, visibility 0s linear 0.22s; padding-bottom:env(safe-area-inset-bottom, 0px); }
+  .chat-panel.open { transform:translateY(0); visibility:visible; transition:transform 0.22s ease, visibility 0s; }
+  .chat-panel-label { display:flex; justify-content:space-between; align-items:center; font-size:11px; }
+  .chat-panel-label span { padding:10px 4px; }
+  #chatMessages { flex:1; min-height:200px; max-height:none; }
+  .fab { z-index:60; }
+  /* B11 tap targets */
+  .focus-btn, .confirmation-btn, .modal-close-btn, #chatSend { min-height:44px; }
+  .focus-btn { font-size:12.5px; }
+  .confirmation-btn { padding:0 16px; }
+  .modal-title span[onclick], .brief-modal-label span[onclick] { padding:12px; margin:-12px; }
 </style>
 </head>
 <body>
@@ -205,9 +247,11 @@
     <div class="stat"><div class="stat-num" id="statFocus">—</div><div class="stat-label">Needs You</div></div>
     <div class="stat"><div class="stat-num" id="statFirst">—</div><div class="stat-label">First Up</div></div>
   </div>
-  <div id="notifyToggle" class="notify-toggle" onclick="enablePushNotifications()">🔔 Enable Notifications</div>
-  <div class="revenue-btn" onclick="openRevenueModal()">💰 Revenue Snapshot</div>
-  <div class="revenue-btn" onclick="showLatestWeeklyReview()">📊 Weekly Review</div>
+  <div class="chips">
+    <div class="chip-btn" onclick="openRevenueModal()"><svg viewBox="0 0 16 16"><path d="M2 13V3M2 13h12M5 10l3-3 2 2 4-5"/></svg>Revenue</div>
+    <div class="chip-btn" onclick="showLatestWeeklyReview()"><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>Weekly review</div>
+  </div>
+  <div id="notifyToggle" class="notify-toggle" onclick="enablePushNotifications()"><span class="dot"></span><span id="notifyLabel">Notifications</span></div>
 </header>
 
 <div class="modal-overlay" id="weekSessionsModal">
@@ -243,13 +287,15 @@
   </div>
 </div>
 
-<div class="quote-block" id="quoteBlock" style="display:none;">
-  <div class="quote-tag" id="quoteTag">—</div>
-  <div class="quote-text" id="quoteText"></div>
-  <div class="quote-attr" id="quoteAttr"></div>
-</div>
-
 <main>
+  <div id="needsYou">
+    <div class="section-label">Needs you</div>
+    <div class="focus-stack" id="focusStack"></div>
+    <div class="focus-stack" id="pipelineNeeds" style="padding-bottom:0;"></div>
+    <div class="focus-stack" id="nearingNeeds" style="padding:10px 0 0;"></div>
+    <div id="confirmationsList"></div>
+  </div>
+
   <div class="section-label">Today</div>
   <div class="timeline" id="timeline">
     <div class="loading-note">Loading…</div>
@@ -260,24 +306,22 @@
     <div class="loading-note">Loading…</div>
   </div>
 
-  <div class="section-label">Needs Your Attention</div>
-  <div class="focus-stack" id="focusStack">
-    <div class="loading-note">Loading…</div>
-  </div>
-
-  <div class="section-label">Pending Confirmations</div>
-  <div id="confirmationsList">
-    <div class="loading-note">Loading…</div>
-  </div>
-
   <div class="section-label">Opportunities</div>
   <div id="opportunitiesList">
     <div class="loading-note">Loading…</div>
   </div>
-  <div class="chat-panel">
-    <div class="chat-panel-label" style="display:flex; justify-content:space-between; align-items:center;">
+  <div class="quote-block" id="quoteBlock" style="display:none;">
+  <div class="quote-tag" id="quoteTag">—</div>
+  <div class="quote-text" id="quoteText"></div>
+  <div class="quote-attr" id="quoteAttr"></div>
+</div>
+</main>
+
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeChat()"></div>
+<div class="chat-panel" id="chatSheet" role="dialog" aria-label="Tell Talos">
+    <div class="chat-panel-label">
       <span>Tell Talos</span>
-      <span id="newConvoBtn" style="cursor:pointer; text-decoration:underline; opacity:0.7;">New conversation</span>
+      <span><span id="newConvoBtn" style="cursor:pointer; text-decoration:underline; opacity:0.8;">New conversation</span> &nbsp;&nbsp; <span onclick="closeChat()" style="cursor:pointer;">Close</span></span>
     </div>
     <div id="chatMessages">
       <div class="msg assistant">What do you need? Add a client, log a session, add a clinic, log a touchpoint — just tell me.</div>
@@ -286,8 +330,7 @@
       <textarea id="chatInput" rows="1" placeholder="Tell Talos what you need..."></textarea>
       <button id="chatSend">Send</button>
     </div>
-  </div>
-</main>
+</div>
 
 <footer>
   <div class="footer-label" id="footerLabel">Talos · Loading…</div>
@@ -448,7 +491,7 @@ function maybeShowWeeklyReview(reviewText, reviewDate, force) {
   overlay.innerHTML = `
     <div class="brief-modal">
       <div class="brief-modal-label" style="display:flex; justify-content:space-between; align-items:center;">
-        <span>\u{1F4CA} Weekly Business Review</span>
+        <span>Weekly business review</span>
         <span onclick="closeWeeklyReviewModal()" style="cursor:pointer; font-size:20px; color:var(--gray); line-height:1;">\u2715</span>
       </div>
       <div class="brief-modal-text">${formatted}</div>
@@ -483,7 +526,6 @@ async function loadDashboard() {
     maybeShowWeeklyReview(data.weeklyReview, data.weeklyReviewDate);
 
     document.getElementById('statSessions').textContent = data.sessionCount ?? 0;
-    document.getElementById('statFocus').textContent = data.focusCount ?? 0;
     document.getElementById('statFirst').textContent = data.timeline && data.timeline[0] ? fmtTime(data.timeline[0].time) : '—';
 
     if (data.quote && data.quote.quote) {
@@ -496,7 +538,9 @@ async function loadDashboard() {
 
     const timelineEl = document.getElementById('timeline');
     if (!data.timeline || data.timeline.length === 0) {
-      timelineEl.innerHTML = '<div class="empty-note">Nothing on the calendar today</div>';
+      const nowMs = Date.now();
+      const nxt = (data.weekSessionsList || []).filter(x => x.status === 'upcoming' && x.date && Date.parse(x.date) > nowMs).sort((a, b) => Date.parse(a.date) - Date.parse(b.date))[0];
+      timelineEl.innerHTML = '<div class="timeline-empty">Clear today' + (nxt ? ' · next: <b>' + nxt.dateLabel + ' ' + nxt.timeLabel + ' ' + nxt.clientName + '</b>' : '') + '</div>';
     } else {
       timelineEl.innerHTML = data.timeline.map(item => `
         <div class="tl-item">
@@ -507,7 +551,7 @@ async function loadDashboard() {
             <div class="tl-type ${item.type}">${typeLabel(item.type)}</div>
           </div>
           ${item.location
-            ? `<a class="tl-loc tl-loc-link" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.location)}" target="_blank" rel="noopener">📍</a>`
+            ? `<a class="tl-loc tl-loc-link" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.location)}" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14s4.5-4.2 4.5-7.5A4.5 4.5 0 0 0 3.5 6.5C3.5 9.8 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.6"/></svg></a>`
             : `<div class="tl-loc">•</div>`}
         </div>
       `).join('');
@@ -515,8 +559,14 @@ async function loadDashboard() {
 
     const focusEl = document.getElementById('focusStack');
     window.currentFocusItems = data.focusItems || [];
-    if (!data.focusItems || data.focusItems.length === 0) {
-      focusEl.innerHTML = '<div class="empty-note">Nothing needs your attention right now</div>';
+    const nearing = (data.packagesNearingList || []).map(p => ({ title: p.clientName + ' — ' + p.sessionsRemaining + ' session left', sub: typeLabel(p.sessionType) + ' package, ' + p.sessionsPurchased + ' sessions', category: 'NEEDS FOLLOW-UP', tag: 'Renewal', id: 'near-' + p.clientName, actionType: 'package_nearing', nearing: true }));
+    window.nyCounts.focus = (data.focusItems || []).length + nearing.length;
+    const nearEl = document.getElementById('nearingNeeds');
+    const escN = x => String(x == null ? '' : x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    nearEl.innerHTML = nearing.map(n => '<div class="focus-card"><div class="focus-body"><div class="focus-category followup">NEEDS FOLLOW-UP</div><div class="focus-title">' + escN(n.title) + '</div><div class="focus-sub">' + escN(n.sub) + '</div></div><div class="focus-tag Renewal">Renewal</div></div>').join('');
+    updateNeedsYou();
+    if ((data.focusItems || []).length === 0) {
+      focusEl.innerHTML = '';
     } else {
       focusEl.innerHTML = data.focusItems.map((item, i) => `
         <div class="focus-card">
@@ -593,6 +643,7 @@ async function loadDashboard() {
   } catch (err) {
     document.getElementById('timeline').innerHTML = `<div class="error-note">Couldn't load your schedule: ${err.message}</div>`;
     document.getElementById('focusStack').innerHTML = '';
+    window.nyCounts.focus = 0; updateNeedsYou();
     document.getElementById('footerLabel').textContent = 'Talos · Connection error';
   }
 }
@@ -616,8 +667,10 @@ async function loadConfirmations() {
     if (!response.ok) throw new Error("Server returned " + response.status);
     const data = await response.json();
     const confirmations = data.confirmations || [];
+    window.nyCounts.confirmations = confirmations.length;
+    updateNeedsYou();
     if (confirmations.length === 0) {
-      listEl.innerHTML = '<div class="empty-note">Nothing waiting on you right now</div>';
+      listEl.innerHTML = '';
       return;
     }
     listEl.innerHTML = confirmations.map(c => {
@@ -685,7 +738,8 @@ async function loadConfirmations() {
     `;
     }).join('');
   } catch (err) {
-    listEl.innerHTML = `<div class="error-note">Couldn't load: ${err.message}</div>`;
+    window.nyError = true; updateNeedsYou();
+    listEl.innerHTML = `<div class="error-note">Couldn't load pending items: ${err.message}</div>`;
   }
 }
 
@@ -817,7 +871,7 @@ async function resolveConfirmation(confirmationId, action, btnEl) {
       errorEl.className = 'confirmation-error';
       card.appendChild(errorEl);
     }
-    errorEl.textContent = "⚠️ Couldn't complete that action: " + err.message;
+    errorEl.textContent = "Couldn't complete that action: " + err.message;
   }
 }
 
@@ -1000,7 +1054,7 @@ function closePackagesNearingModal() {
 async function updateNotifyToggleUI() {
   const el = document.getElementById('notifyToggle');
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    el.textContent = '🔕 Notifications not supported on this browser';
+    document.getElementById('notifyLabel').textContent = 'Notifications not supported on this browser';
     el.classList.add('unsupported');
     return;
   }
@@ -1008,10 +1062,10 @@ async function updateNotifyToggleUI() {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
     if (sub) {
-      el.textContent = '🔔 Notifications enabled';
+      document.getElementById('notifyLabel').textContent = 'Notifications on';
       el.classList.add('enabled');
     } else {
-      el.textContent = '🔔 Enable Notifications';
+      document.getElementById('notifyLabel').textContent = 'Enable notifications';
       el.classList.remove('enabled');
     }
   } catch (e) {}
@@ -1023,7 +1077,7 @@ async function enablePushNotifications() {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      el.textContent = '🔕 Permission denied — check browser settings';
+      document.getElementById('notifyLabel').textContent = 'Permission denied, check browser settings';
       return;
     }
     const reg = await navigator.serviceWorker.ready;
@@ -1046,7 +1100,7 @@ async function enablePushNotifications() {
     });
     await updateNotifyToggleUI();
   } catch (err) {
-    el.textContent = '🔕 Couldn\'t enable: ' + err.message;
+    document.getElementById('notifyLabel').textContent = 'Couldn\'t enable: ' + err.message;
   }
 }
 
@@ -1054,8 +1108,47 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(updateNotifyToggleUI).catch(() => {});
 }
 
+function openChat() {
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('chatSheet').classList.add('open');
+  setTimeout(() => { const m = document.getElementById('chatMessages'); m.scrollTop = m.scrollHeight; document.getElementById('chatInput').focus(); }, 240);
+}
+function closeChat() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+  document.getElementById('chatSheet').classList.remove('open');
+}
+
+// ---- Needs you: one list, hidden when empty (B3) ----
+window.nyCounts = { focus: 0, confirmations: 0, pipeline: 0 };
+function updateNeedsYou() {
+  const c = window.nyCounts;
+  const total = c.focus + c.confirmations + c.pipeline;
+  document.getElementById('needsYou').style.display = (total > 0 || window.nyError) ? 'block' : 'none';
+  document.getElementById('statFocus').textContent = total;
+}
+const PIPELINE_URL = "https://affable-chachalaca.pikapod.net/webhook/pipeline-overview";
+async function loadPipelineNeeds() {
+  const el = document.getElementById('pipelineNeeds');
+  try {
+    const r = await fetch(PIPELINE_URL, { headers: { "X-Api-Key": API_KEY } });
+    if (!r.ok) throw new Error('status ' + r.status);
+    const d = await r.json();
+    const leads = (d.leads || []).filter(l => l.needs_decision);
+    window.nyCounts.pipeline = leads.length;
+    const label = { hot_opportunity: 'Hot lead', call_ready: 'Ready for a call' };
+    el.innerHTML = leads.slice(0, 5).map(l => {
+      const ev = l.last_event && l.last_event.type;
+      const why = ev === 'draft_ready' ? 'Apollo draft waiting for your approval' : ev === 'reply_received' ? 'Clinic replied' : (label[l.status] || 'Needs your decision');
+      const esc = t => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return '<div class="focus-card link" onclick="location.href=\'clinics.html\'"><div class="focus-body"><div class="focus-category decision">NEEDS DECISION</div><div class="focus-title">' + esc(l.practice_name) + '</div><div class="focus-sub">' + esc(why) + ' · ' + esc(l.city || '') + '</div></div><div class="focus-tag Apollo">Apollo</div></div>';
+    }).join('') + (leads.length > 5 ? '<div class="focus-sub" style="padding:6px 4px;">+' + (leads.length - 5) + ' more in Clinics</div>' : '');
+  } catch (e) { window.nyCounts.pipeline = 0; el.innerHTML = ''; }
+  updateNeedsYou();
+}
+
 loadConfirmations();
 loadDashboard();
+loadPipelineNeeds();
 
 // --- Embedded chat ---
 const CHAT_URL = "https://affable-chachalaca.pikapod.net/webhook/jarvis-agent-step";
@@ -1142,7 +1235,7 @@ async function handleChatSend() {
     if (changedData) setTimeout(loadDashboard, 500);
   } catch (err) {
     hideChatTyping();
-    addChatMessage('assistant', "⚠️ Couldn't reach Talos: " + err.message);
+    addChatMessage('assistant', "Couldn't reach Talos: " + err.message);
   }
 
   chatSendEl.disabled = false;
@@ -1186,7 +1279,7 @@ document.getElementById('newConvoBtn').addEventListener('click', () => {
 
 <div id="buildStamp" style="position:fixed; bottom:calc(100px + env(safe-area-inset-bottom, 0px)); right:10px; font-family:'DM Mono',monospace; font-size:9px; color:var(--gray); opacity:0.5; pointer-events:none; z-index:9999;"></div>
 
-<button class="fab" onclick="document.getElementById('chatInput').scrollIntoView({behavior:'smooth', block:'center'}); document.getElementById('chatInput').focus();" aria-label="Tell Talos">
+<button class="fab" onclick="openChat()" aria-label="Tell Talos">
   <svg width="24" height="24" viewBox="0 0 64 64"><path d="M6 32 Q16 23 20 32 Q22 37 24 10 L27 54 Q29 40 34 32 Q42 24 58 32" stroke="#0a0a0a" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 </button>
 
