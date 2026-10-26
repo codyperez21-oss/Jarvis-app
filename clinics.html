@@ -181,15 +181,14 @@
 </header>
 
 <main>
+  <div id="clinicList"></div>
+  <div class="pl-divider"></div>
   <div class="pl-head">
     <div class="pl-title">Outreach Pipeline</div>
     <div class="pl-sub" id="plSub">Loading…</div>
   </div>
   <div class="pl-chips" id="plChips"></div>
   <div id="plList"></div>
-  <div class="pl-divider"></div>
-  <div class="pl-head"><div class="pl-title">My Clinics</div></div>
-  <div id="clinicList"></div>
 </main>
 
 <div class="modal-overlay" id="peptideWatchModal">
@@ -434,7 +433,8 @@ async function loadClinics() {
     if (!response.ok) throw new Error("Server returned " + response.status);
     const data = await response.json();
 
-    document.getElementById('clinicCount').textContent = `${data.clinics.length} active clinic${data.clinics.length !== 1 ? 's' : ''}`;
+    const nActive = (data.clinics || []).filter(c => c.status === 'active').length;
+    document.getElementById('clinicCount').textContent = `${nActive} active clinic${nActive !== 1 ? 's' : ''}`;
 
     if (!data.clinics || data.clinics.length === 0) {
       clinicsData = [];
@@ -442,6 +442,7 @@ async function loadClinics() {
       return;
     }
 
+    data.clinics.sort((a, b) => (b.status === 'active') - (a.status === 'active'));
     clinicsData = data.clinics;
     listEl.innerHTML = data.clinics.map(renderClinic).join("");
   } catch (err) {
