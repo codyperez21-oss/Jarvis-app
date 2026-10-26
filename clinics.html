@@ -127,6 +127,44 @@
   .modal-header-row .modal-title { margin-bottom:0; }
   .modal-close-x { width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--gray); font-size:16px; cursor:pointer; flex-shrink:0; }
   .modal-body-scroll { overflow-y:auto; padding:0 20px 24px; flex:1; }
+  .pl-wrap { margin-top:16px; }
+  .pl-head { display:flex; justify-content:space-between; align-items:baseline; margin-top:18px; }
+  .pl-title { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.04em; color:var(--white); }
+  .pl-sub { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); }
+  .pl-chips { display:flex; gap:6px; overflow-x:auto; padding:10px 0 4px; }
+  .pl-chip { flex-shrink:0; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; color:var(--gray); border:1px solid var(--border); border-radius:14px; padding:6px 10px; cursor:pointer; background:var(--card); }
+  .pl-chip b { color:var(--white); font-weight:500; margin-left:4px; }
+  .pl-chip.on { border-color:var(--grape); color:var(--grape); }
+  .pl-chip.alert b { color:var(--gold); }
+  .pl-lead { background:var(--card); border-radius:14px; margin-top:8px; overflow:hidden; }
+  .pl-row { display:grid; grid-template-columns:1fr auto; gap:10px; padding:14px 16px; cursor:pointer; align-items:center; }
+  .pl-name { font-size:15px; font-weight:600; color:var(--white); line-height:1.25; }
+  .pl-meta { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:3px; }
+  .pl-badge { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.08em; text-transform:uppercase; border-radius:4px; padding:4px 7px; border:1px solid var(--border); color:var(--gray); white-space:nowrap; }
+  .pl-badge.contacted { color:#7fb2e5; border-color:#2d4a66; }
+  .pl-badge.warm { color:var(--amber, #e0983a); border-color:#6b4a1a; }
+  .pl-badge.hot { color:#0a0a0a; background:var(--gold); border-color:var(--gold); }
+  .pl-badge.won { color:#6fcf8f; border-color:#2d6644; }
+  .pl-badge.closed { color:#c26b6b; border-color:#5a2d2d; }
+  .pl-tags { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .pl-tag { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.05em; border-radius:3px; padding:2px 6px; background:rgba(201,168,76,0.1); color:var(--gold); border:1px solid rgba(201,168,76,0.25); }
+  .pl-tag.pend { background:rgba(155,107,214,0.1); color:var(--grape); border-color:rgba(155,107,214,0.3); }
+  .pl-detail { display:none; border-top:1px solid var(--border); background:#101010; padding:14px 16px; }
+  .pl-lead.open .pl-detail { display:block; }
+  .pl-info { font-family:'DM Mono',monospace; font-size:11px; color:var(--white); line-height:1.7; word-break:break-word; }
+  .pl-info a { color:var(--grape); }
+  .pl-ev { border-left:2px solid var(--border); padding:2px 0 2px 10px; margin-top:10px; }
+  .pl-ev-top { font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:0.05em; color:var(--gold-dim); text-transform:uppercase; }
+  .pl-ev-txt { font-size:12.5px; color:var(--white); margin-top:2px; word-break:break-word; }
+  .pl-ev-reply { font-size:12px; color:var(--gray); margin-top:4px; padding:6px 8px; background:#0c0c0c; border-radius:6px; white-space:pre-wrap; }
+  .pl-sec { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin:16px 0 4px; }
+  .pl-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .pl-act { font-family:'DM Mono',monospace; font-size:10px; border:1px solid var(--grape-dim); color:var(--grape); border-radius:6px; padding:8px 10px; cursor:pointer; }
+  .pl-act.danger { border-color:#5a2d2d; color:#c26b6b; }
+  .pl-act.dis { opacity:0.4; pointer-events:none; }
+  .pl-note { width:100%; margin-top:8px; background:#0c0c0c; border:1px solid var(--border); border-radius:6px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13px; padding:8px 10px; }
+  .pl-empty { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); padding:16px 0; }
+  .pl-divider { border-top:1px solid var(--border); margin-top:22px; }
 </style>
 </head>
 <body>
@@ -143,6 +181,14 @@
 </header>
 
 <main>
+  <div class="pl-head">
+    <div class="pl-title">Outreach Pipeline</div>
+    <div class="pl-sub" id="plSub">Loading…</div>
+  </div>
+  <div class="pl-chips" id="plChips"></div>
+  <div id="plList"></div>
+  <div class="pl-divider"></div>
+  <div class="pl-head"><div class="pl-title">My Clinics</div></div>
   <div id="clinicList"></div>
 </main>
 
@@ -466,6 +512,133 @@ async function loadPeptideWatch() {
 }
 
 loadClinics();
+const PL_BASE = "https://affable-chachalaca.pikapod.net/webhook/";
+let plLeads = [], plFilter = 'all', plOpen = null, plMeta = {};
+const PL_GROUPS = [
+  ['needs', 'Needs you', l => l.needs_decision],
+  ['cold', 'Cold', l => l.status === 'cold'],
+  ['contacted', 'Contacted', l => l.status === 'contacted'],
+  ['warm', 'Warm', l => l.status === 'warm'],
+  ['hot', 'Hot', l => l.status === 'hot_opportunity' || l.status === 'call_ready'],
+  ['won', 'Won', l => l.status === 'won'],
+  ['closed', 'Closed', l => ['lost','unsubscribed','bounced','do_not_contact'].includes(l.status)]
+];
+const PL_STATUS_LABEL = { cold:'Cold', contacted:'Contacted', warm:'Warm', call_ready:'Call ready', hot_opportunity:'Hot', won:'Won', lost:'Lost', unsubscribed:'Unsubscribed', bounced:'Bounced', do_not_contact:'Do not contact' };
+const PL_EVENT_LABEL = { lead_created:'Added', lead_updated:'Updated', status_change:'Stage change', email_sent:'Email sent', reply_received:'Reply received', call_scheduled:'Call scheduled', note:'Note', draft_ready:'Draft ready', decision:'Your decision', decision_ack:'Apollo confirmed' };
+const PL_DECISIONS = [
+  ['approve_outreach','Approve outreach',false], ['send_followup','Send follow-up',false], ['hold','Hold',false], ['skip','Skip',false],
+  ['mark_call_ready','Mark call ready',false], ['mark_won','Mark won',false], ['mark_lost','Mark lost',true], ['do_not_contact','Do not contact',true]
+];
+function plEsc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function plBadgeClass(s) { return s === 'hot_opportunity' || s === 'call_ready' ? 'hot' : (['lost','unsubscribed','bounced','do_not_contact'].includes(s) ? 'closed' : s); }
+function plWhen(iso) { if (!iso) return ''; return new Date(iso).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }); }
+function plUrl(u) { return /^https?:\/\//i.test(u || '') ? plEsc(u) : ''; }
+
+async function loadPipeline() {
+  try {
+    const r = await fetch(PL_BASE + "pipeline-overview", { headers: { "X-Api-Key": API_KEY } });
+    if (!r.ok) throw new Error("Server returned " + r.status);
+    const d = await r.json();
+    plLeads = d.leads || [];
+    plMeta = d.ingest || {};
+    renderPipeline();
+  } catch (e) {
+    document.getElementById('plSub').textContent = '';
+    document.getElementById('plList').innerHTML = '<div class="error-note">Couldn\'t load pipeline: ' + plEsc(e.message) + '</div>';
+  }
+}
+
+function renderPipeline() {
+  const total = plLeads.length;
+  const touched = plLeads.filter(l => l.status !== 'cold').length;
+  const last = plMeta.last_ingest_at ? 'Apollo last synced ' + plWhen(plMeta.last_ingest_at.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00')) : 'Apollo has not synced yet';
+  document.getElementById('plSub').textContent = total + ' clinics · ' + touched + ' contacted · ' + last;
+  const chips = [['all', 'All', () => true]].concat(PL_GROUPS);
+  document.getElementById('plChips').innerHTML = chips.map(g => {
+    const n = plLeads.filter(g[2]).length;
+    return '<div class="pl-chip' + (plFilter === g[0] ? ' on' : '') + (g[0] === 'needs' && n ? ' alert' : '') + '" onclick="plSetFilter(\'' + g[0] + '\')">' + g[1] + '<b>' + n + '</b></div>';
+  }).join('');
+  const sel = chips.find(g => g[0] === plFilter) || chips[0];
+  const rows = plLeads.filter(sel[2]);
+  const el = document.getElementById('plList');
+  if (!total) { el.innerHTML = '<div class="pl-empty">No leads yet. Apollo will populate this as it works.</div>'; return; }
+  if (!rows.length) { el.innerHTML = '<div class="pl-empty">Nothing here.</div>'; return; }
+  el.innerHTML = rows.map(l => {
+    const ev = l.last_event ? (PL_EVENT_LABEL[l.last_event.type] || l.last_event.type) + ' · ' + plWhen(l.last_event.at) : (l.last_touch_date ? 'Last touch ' + plEsc(l.last_touch_date) : 'Not contacted yet');
+    return '<div class="pl-lead' + (plOpen === l.id ? ' open' : '') + '" id="pl-' + l.id + '">' +
+      '<div class="pl-row" onclick="plToggle(' + l.id + ')"><div>' +
+        '<div class="pl-name">' + plEsc(l.practice_name) + '</div>' +
+        '<div class="pl-meta">' + plEsc(l.city) + ' · ' + plEsc(l.external_id) + ' · ' + plEsc(ev) + '</div>' +
+        '<div class="pl-tags">' + (l.needs_decision ? '<span class="pl-tag">Needs your decision</span>' : '') +
+          (l.pending_decision ? '<span class="pl-tag pend">Waiting on Apollo: ' + plEsc(l.pending_decision.decision.replace(/_/g, ' ')) + (l.pending_decision.ack === 'failed' ? ' (failed)' : '') + '</span>' : '') + '</div>' +
+      '</div><div class="pl-badge ' + plBadgeClass(l.status) + '">' + plEsc(PL_STATUS_LABEL[l.status] || l.status) + '</div></div>' +
+      '<div class="pl-detail" id="pld-' + l.id + '">' + (plOpen === l.id ? '<div class="pl-empty">Loading…</div>' : '') + '</div></div>';
+  }).join('');
+  if (plOpen !== null) plLoadDetail(plOpen);
+}
+
+function plSetFilter(f) { plFilter = f; plOpen = null; renderPipeline(); }
+function plToggle(id) {
+  if (plOpen === id) { plOpen = null; document.getElementById('pl-' + id).classList.remove('open'); return; }
+  if (plOpen !== null) { const prev = document.getElementById('pl-' + plOpen); if (prev) prev.classList.remove('open'); }
+  plOpen = id;
+  document.getElementById('pl-' + id).classList.add('open');
+  plLoadDetail(id);
+}
+
+async function plLoadDetail(id) {
+  const box = document.getElementById('pld-' + id);
+  if (!box) return;
+  const l = plLeads.find(x => x.id === id) || {};
+  try {
+    const r = await fetch(PL_BASE + "pipeline-lead-timeline?id=" + encodeURIComponent(id), { headers: { "X-Api-Key": API_KEY } });
+    if (!r.ok) throw new Error("Server returned " + r.status);
+    const d = await r.json();
+    const lead = d.lead || l;
+    const info = [];
+    if (lead.medical_director) info.push('Director: ' + plEsc(lead.medical_director));
+    if (lead.public_email) info.push('Email: ' + plEsc(lead.public_email));
+    if (lead.phone) info.push('Phone: ' + plEsc(lead.phone));
+    if (plUrl(lead.website)) info.push('<a href="' + plUrl(lead.website) + '" target="_blank" rel="noopener">Website</a>');
+    if (plUrl(lead.contact_form_url)) info.push('<a href="' + plUrl(lead.contact_form_url) + '" target="_blank" rel="noopener">Contact form</a>');
+    if (lead.address) info.push(plEsc(lead.address));
+    if (lead.notes) info.push('Notes: ' + plEsc(lead.notes));
+    const evs = (d.events || []).map(e => {
+      const who = e.source === 'grok-bot' ? 'Apollo' : (e.source === 'cody' ? 'You' : plEsc(e.source));
+      const stage = e.new_status ? ' → ' + plEsc(PL_STATUS_LABEL[e.new_status] || e.new_status) : '';
+      const txt = e.summary || e.note || '';
+      return '<div class="pl-ev"><div class="pl-ev-top">' + plEsc(PL_EVENT_LABEL[e.event_type] || e.event_type) + stage + ' · ' + who + ' · ' + plEsc(plWhen(e.created_at)) + '</div>' +
+        (txt ? '<div class="pl-ev-txt">' + plEsc(txt) + '</div>' : '') +
+        (e.reply_text_untrusted ? '<div class="pl-ev-reply">' + plEsc(String(e.reply_text_untrusted).slice(0, 800)) + '</div>' : '') + '</div>';
+    }).join('');
+    box.innerHTML =
+      '<div class="pl-info">' + (info.length ? info.join('<br>') : 'No contact details on file yet.') + '</div>' +
+      '<div class="pl-sec">Your decision</div>' +
+      '<div class="pl-actions">' + PL_DECISIONS.map(x => '<div class="pl-act' + (x[2] ? ' danger' : '') + '" onclick="plDecide(' + id + ',\'' + x[0] + '\',this)">' + x[1] + '</div>').join('') + '</div>' +
+      '<input class="pl-note" id="pln-' + id + '" maxlength="280" placeholder="Optional note for Apollo">' +
+      '<div class="pl-sec">History</div>' + (evs || '<div class="pl-empty">No activity yet.</div>');
+  } catch (e) {
+    box.innerHTML = '<div class="error-note">Couldn\'t load: ' + plEsc(e.message) + '</div>';
+  }
+}
+
+async function plDecide(id, decision, btn) {
+  const danger = ['mark_lost', 'do_not_contact', 'mark_won'].includes(decision);
+  if (danger && !confirm('Confirm: ' + decision.replace(/_/g, ' ') + '? This changes the lead status immediately.')) return;
+  const noteEl = document.getElementById('pln-' + id);
+  document.querySelectorAll('#pld-' + id + ' .pl-act').forEach(b => b.classList.add('dis'));
+  try {
+    const r = await fetch(PL_BASE + "pipeline-decide", { method: "POST", headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY }, body: JSON.stringify({ leadId: id, decision: decision, note: noteEl ? noteEl.value : '' }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || ('Server returned ' + r.status));
+    await loadPipeline();
+  } catch (e) {
+    document.querySelectorAll('#pld-' + id + ' .pl-act').forEach(b => b.classList.remove('dis'));
+    alert('Couldn\'t save: ' + e.message);
+  }
+}
+
+loadPipeline();
 </script>
 
 <a class="fab" href="index.html" aria-label="Tell Talos">
