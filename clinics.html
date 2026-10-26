@@ -221,6 +221,18 @@
   .bt-btn.armed { background:rgba(155,107,214,0.2); color:var(--white); border-color:var(--grape); }
   .bt-btn.reject.armed { background:rgba(194,107,107,0.15); color:#e08a8a; }
   .bt-btn.dis { opacity:0.4; pointer-events:none; }
+  .bt-note { display:block; width:100%; box-sizing:border-box; margin-top:10px; min-height:44px; padding:0 12px; background:#0a0a0a; border:1px solid var(--border); border-radius:6px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:16px; }
+  .bt-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .bt-actions .bt-remove { margin-top:0; }
+  .bt-sendback { min-height:44px; padding:0 14px; background:transparent; border:1px solid var(--grape); color:var(--grape); border-radius:6px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; }
+  .bt-hist { margin-top:12px; background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .bt-hist .bt-toggle { border-top:none; }
+  .bt-hist-row { padding:11px 16px; border-top:1px solid var(--border); }
+  .bt-hist-top { display:flex; justify-content:space-between; gap:10px; font-size:14px; color:var(--white); }
+  .bt-hist-top span { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+  .bt-hist-line { font-family:'DM Mono',monospace; font-size:11.5px; line-height:1.6; color:var(--gray); margin-top:3px; }
+  .bt-hist-line .bad { color:#e0983a; }
+  .bt-prob { font-family:'DM Mono',monospace; font-size:11px; color:#e0983a; margin-top:2px; }
   .bt-result { padding:10px 16px; font-family:'DM Mono',monospace; font-size:12px; line-height:1.6; color:var(--white); border-top:1px solid var(--border); }
   .bt-result .bad { color:#e0983a; }
 </style>
@@ -612,7 +624,7 @@ async function loadPipeline() {
   }
 }
 
-let plBatches = [], btOpen = {}, btRow = {}, btArm = null, btResult = {};
+let plBatches = [], btOpen = {}, btRow = {}, btArm = null, btResult = {}, btHist = [], btHistOpen = false, btNote = {};
 async function loadBatches() {
   const el = document.getElementById('plBatches');
   try {
@@ -620,6 +632,7 @@ async function loadBatches() {
     if (!r.ok) throw new Error("Server returned " + r.status);
     const d = await r.json();
     plBatches = d.batches || [];
+    try { const hr = await fetch(PL_BASE + "pipeline-batch-history", { headers: { "X-Api-Key": API_KEY } }); if (hr.ok) btHist = (await hr.json()).history || []; } catch (e2) {}
     renderBatches();
   } catch (e) { plBatches = []; el.innerHTML = ''; }
 }
@@ -651,7 +664,9 @@ function renderBatches() {
         '<div class="bt-first">' + plEsc(it.first_line) + '</div></div>' +
         (ro ? '<div class="bt-full"><div class="pl-draft">' + plEsc(it.draft_text) + '</div>' +
           '<div class="pl-draft-meta">Draft #' + plEsc(it.draft_event_id) + ' · sha256 ' + plEsc(it.draft_hash_short) + '</div>' +
-          '<button class="bt-remove" onclick="btRemove(' + it.lead_id + ',' + it.draft_event_id + ')">Remove from batch</button></div>' : '') + '</div>';
+          '<input class="bt-note" maxlength="250" placeholder="What should Apollo change?" value="' + plEsc(btNote[it.draft_event_id] || '') + '" oninput="btNote[' + it.draft_event_id + ']=this.value">' +
+          '<div class="bt-actions"><button class="bt-sendback" onclick="btSendback(' + it.lead_id + ',' + it.draft_event_id + ')">Send back to Apollo</button>' +
+          '<button class="bt-remove" onclick="btRemove(' + it.lead_id + ',' + it.draft_event_id + ')">Remove from batch</button></div></div>' : '') + '</div>';
     }).join('') + '</div>' : '';
     return '<div class="bt-card" id="bt-' + bid + '"><div class="bt-head"><div class="bt-eyebrow">Batch · ' + plEsc(kind) + '</div>' +
       '<div class="bt-label">' + plEsc(b.label) + '</div>' +
@@ -659,7 +674,24 @@ function renderBatches() {
       '<button class="bt-toggle" onclick="btToggle(\'' + bid + '\')">' + (open ? 'Hide drafts' : 'Review ' + n + ' draft' + (n !== 1 ? 's' : '')) + '</button>' + rows + resHtml +
       '<div class="bt-foot"><button class="bt-btn reject' + (btArmed(rk) ? ' armed' : '') + '" onclick="btAct(\'' + bid + '\',\'reject\')">' + (btArmed(rk) ? 'Tap again to reject' : 'Reject batch') + '</button>' +
       '<button class="bt-btn approve' + (btArmed(ak) ? ' armed' : '') + '" onclick="btAct(\'' + bid + '\',\'approve\')">' + (btArmed(ak) ? 'Tap again: approve ' + n : 'Approve batch (' + n + ')') + '</button></div></div>';
-  }).join('');
+  }).join('') + btHistoryHtml();
+}
+function btHistoryHtml() {
+  if (!btHist.length) return '';
+  const rows = btHistOpen ? '<div class="bt-hist-list">' + btHist.slice(0, 8).map(h => {
+    const bits = ['Approved ' + h.approved];
+    if (h.approved) bits.push('Sent ' + h.sent);
+    if (h.failed) bits.push('<span class="bad">Failed ' + h.failed + '</span>');
+    if (h.ignored) bits.push('<span class="bad">Ignored ' + h.ignored + '</span>');
+    if (h.dropped) bits.push('<span class="bad">Dropped ' + h.dropped + '</span>');
+    if (h.awaiting) bits.push('Awaiting send ' + h.awaiting);
+    if (h.sent_back) bits.push('Sent back ' + h.sent_back);
+    if (h.rejected) bits.push('Rejected ' + h.rejected);
+    const probs = (h.problems || []).map(p => '<div class="bt-prob">' + plEsc(p.practice_name) + ' · ' + plEsc(p.state) + (p.note ? ' · ' + plEsc(p.note) : '') + '</div>').join('');
+    return '<div class="bt-hist-row"><div class="bt-hist-top"><b>' + plEsc(h.label) + '</b><span>' + plWhen(h.decided_at) + '</span></div>' +
+      '<div class="bt-hist-line">' + bits.join(' · ') + '</div>' + probs + '</div>';
+  }).join('') + '</div>' : '';
+  return '<div class="bt-hist"><button class="bt-toggle" onclick="btHistOpen=!btHistOpen;renderBatches()">' + (btHistOpen ? 'Hide recent batches' : 'Recent batches (' + btHist.length + ')') + '</button>' + rows + '</div>';
 }
 function btToggle(b) { btOpen[b] = !btOpen[b]; renderBatches(); }
 function btToggleRow(b, id) { const k = b + '|' + id; btRow[k] = !btRow[k]; renderBatches(); }
@@ -684,6 +716,17 @@ async function btAct(batchId, action) {
     btResult[batchId] = '<div class="bad">Couldn\'t save: ' + plEsc(e.message) + '</div>';
     renderBatches();
   }
+}
+async function btSendback(leadId, draftEventId) {
+  const note = (btNote[draftEventId] || '').trim();
+  if (!note) { alert('Add a short note so Apollo knows what to change.'); return; }
+  try {
+    const r = await fetch(PL_BASE + "pipeline-batch-sendback", { method: "POST", headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY }, body: JSON.stringify({ leadId: leadId, draftEventId: draftEventId, note: note }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || ('Server returned ' + r.status));
+    delete btNote[draftEventId];
+    await loadBatches();
+  } catch (e) { alert('Couldn\'t send back: ' + e.message); }
 }
 async function btRemove(leadId, draftEventId) {
   try {
