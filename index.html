@@ -541,7 +541,7 @@ async function loadDashboard() {
     const timelineEl = document.getElementById('timeline');
     if (!data.timeline || data.timeline.length === 0) {
       const nowMs = Date.now();
-      const nxt = (data.weekSessionsList || []).filter(x => x.status === 'upcoming' && x.date && Date.parse(x.date) > nowMs).sort((a, b) => Date.parse(a.date) - Date.parse(b.date))[0];
+      const nxt = (data.weekSessionsList || []).filter(x => x.status === 'upcoming').concat((data.upcomingEvents || []).map(e => ({ date: e.date, dateLabel: e.dateLabel, timeLabel: e.timeLabel, clientName: e.title }))).filter(x => x.date && Date.parse(x.date) > nowMs).sort((a, b) => Date.parse(a.date) - Date.parse(b.date))[0];
       timelineEl.innerHTML = '<div class="timeline-empty">Clear today' + (nxt ? ' · next: <b>' + nxt.dateLabel + ' ' + nxt.timeLabel + ' ' + nxt.clientName + '</b>' : '') + '</div>';
     } else {
       timelineEl.innerHTML = data.timeline.map(item => `
