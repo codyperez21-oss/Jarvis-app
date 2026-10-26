@@ -67,6 +67,7 @@
   .tr-stat-val.on { color:var(--white); }
   @media (max-width:420px) { .tr-grid { grid-template-columns:minmax(0,1fr); } }
   .tr-card { min-width:0; }
+  .tr-tbl td.tr-reason { white-space:normal; min-width:160px; text-align:left; }
   .tr-stat-val { font-size:18px; }
 </style>
 </head>
@@ -75,18 +76,19 @@
 <header>
   <div class="eyebrow">Markets</div>
   <div class="page-title">Trading</div>
-  <div class="page-sub">Paper account · display only<span class="tr-badge">PAPER</span></div>
+  <div class="page-sub">Tyche virtual budget · display only<span class="tr-badge">PAPER · VIRTUAL $100</span></div>
 </header>
 
 <main>
-  <div class="tr-bar"><div class="tr-updated" id="trUpdated">Loading…</div><button class="tr-refresh" id="trRefresh" type="button">Refresh snapshot</button></div>
+  <div class="tr-bar"><div class="tr-updated" id="trUpdated">Loading…</div><button class="tr-refresh" id="trRefresh" type="button">Refresh</button></div>
   <div class="tr-stale" id="trStale"></div>
   <div class="tr-grid">
-    <div class="tr-card wide" id="trAcct"><div class="tr-label">Account (paper)</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trAcct"><div class="tr-label">Virtual balance</div><div class="tr-empty">Loading…</div></div>
     <div class="tr-card wide" id="trPos"><div class="tr-label">Open positions</div><div class="tr-empty">Loading…</div></div>
-    <div class="tr-card wide" id="trTrades"><div class="tr-label">Recent trades</div><div class="tr-empty">Loading…</div></div>
-    <div class="tr-card wide" id="trCurve"><div class="tr-label">Equity · 1 month</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trTrades"><div class="tr-label">Trade log</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trCurve"><div class="tr-label">Virtual balance · 1 month</div><div class="tr-empty">Loading…</div></div>
     <div class="tr-card wide" id="trScore"><div class="tr-label">Weekly scorecard</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trFills"><div class="tr-label">Fills from the Alpaca paper account</div><div class="tr-empty">Loading…</div></div>
   </div>
   <div class="tr-note">This page only displays. It never places, approves or changes trades.</div>
 </main>
@@ -126,62 +128,72 @@ function marketOpenNow() {
   return ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(g("weekday")) && mins >= 570 && mins < 960;
 }
 
-function renderAccount(a) {
+const pn = (v, signed) => { const n = num(v); return n == null ? "—" : (signed && n > 0 ? "+" : "") + n.toFixed(2) + "%"; };
+const lbl = (t) => '<div class="tr-label">' + t + "</div>";
+
+function renderAccount(v) {
   const el = $("trAcct");
-  if (!a) { el.innerHTML = '<div class="tr-label">Account (paper)</div>' + empty("No snapshot yet"); return; }
-  const day = num(a.equity) != null && num(a.last_equity) != null ? num(a.equity) - num(a.last_equity) : null;
-  const dayPct = day != null && num(a.last_equity) ? day / num(a.last_equity) : null;
-  el.innerHTML = '<div class="tr-label">Account (paper)</div><div class="tr-big">' + usd(a.equity) + '</div>' +
-    '<div class="tr-stat-label" style="margin-top:6px">Equity</div>' +
-    '<div class="tr-row3"><div><div class="tr-stat-label">Cash</div><div class="tr-stat-val on">' + usd(a.cash) + '</div></div>' +
-    '<div><div class="tr-stat-label">Buying power</div><div class="tr-stat-val on">' + usd(a.buying_power) + '</div></div>' +
-    '<div><div class="tr-stat-label">Today</div><div class="tr-stat-val ' + cls(day) + '">' + sgn(day) + '</div><div class="tr-stat-label ' + cls(day) + '">' + pct(dayPct, true) + '</div></div></div>';
+  if (!v) { el.innerHTML = lbl("Virtual balance") + empty("No snapshot from Tyche yet."); return; }
+  const start = num(v.starting_budget);
+  el.innerHTML = lbl("Virtual balance") + '<div class="tr-big">' + usd(v.virtual_balance) + '</div>' +
+    '<div class="tr-stat-label" style="margin-top:6px">of ' + usd(start) + ' starting budget</div>' +
+    '<div class="tr-row3"><div><div class="tr-stat-label">Today</div><div class="tr-stat-val ' + cls(v.day_pl) + '">' + sgn(v.day_pl) + '</div><div class="tr-stat-label ' + cls(v.day_pl) + '">' + pn(v.day_pl_pct, true) + '</div></div>' +
+    '<div><div class="tr-stat-label">Total</div><div class="tr-stat-val ' + cls(v.total_pl) + '">' + sgn(v.total_pl) + '</div><div class="tr-stat-label ' + cls(v.total_pl) + '">' + pn(v.total_pl_pct, true) + '</div></div>' +
+    '<div><div class="tr-stat-label">Max drawdown</div><div class="tr-stat-val on">' + pn(v.max_drawdown_pct) + '</div><div class="tr-stat-label">Day trades (5d): ' + (v.day_trades_5d == null ? "—" : esc(v.day_trades_5d)) + '</div></div></div>';
 }
 
 function renderPositions(rows) {
   const el = $("trPos");
-  if (!rows || !rows.length) { el.innerHTML = '<div class="tr-label">Open positions</div>' + empty("No open positions."); return; }
-  const body = rows.map((p) => '<tr><td>' + esc(p.symbol) + '</td><td>' + qtyFmt(p.qty) + '</td><td>' + usd(p.avg_entry_price) + '</td><td>' + usd(p.current_price) + '</td><td>' + usd(p.market_value) +
-    '</td><td class="' + cls(p.unrealized_pl) + '">' + sgn(p.unrealized_pl) + ' (' + pct(p.unrealized_plpc, true) + ')</td></tr>').join("");
-  el.innerHTML = '<div class="tr-label">Open positions</div><div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Current</th><th>Value</th><th>Unrealized</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+  if (!rows || !rows.length) { el.innerHTML = lbl("Open positions") + empty("No open positions."); return; }
+  const body = rows.map((p) => '<tr><td>' + esc(p.symbol) + '</td><td>' + qtyFmt(p.qty) + '</td><td>' + usd(p.entry) + '</td><td>' + usd(p.current) + '</td><td>' + usd(p.notional) +
+    '</td><td class="' + cls(p.unrealized_pl) + '">' + sgn(p.unrealized_pl) + '</td><td>' + usd(p.stop) + '</td><td>' + usd(p.target) + '</td></tr>').join("");
+  el.innerHTML = lbl("Open positions") + '<div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Current</th><th>Notional</th><th>Unrealized</th><th>Stop</th><th>Target</th></tr></thead><tbody>' + body + '</tbody></table></div>';
 }
 
 function renderTrades(rows) {
   const el = $("trTrades");
-  if (!rows || !rows.length) { el.innerHTML = '<div class="tr-label">Recent trades</div>' + empty("No trades yet."); return; }
-  const body = rows.map((t) => '<tr><td>' + esc(etTime(t.filled_at)) + '</td><td>' + esc(t.symbol) + '</td><td>' + esc(String(t.side || "").toUpperCase()) + '</td><td>' + qtyFmt(t.filled_qty) + '</td><td>' + usd(t.filled_avg_price) + '</td><td>' + esc(t.status) + '</td></tr>').join("");
-  el.innerHTML = '<div class="tr-label">Recent trades</div><div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Time (ET)</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Fill</th><th>Status</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+  if (!rows || !rows.length) { el.innerHTML = lbl("Trade log") + empty("No trades yet."); return; }
+  const body = rows.map((t) => '<tr><td>' + esc(t.trade_date || "—") + '</td><td>' + esc(t.symbol) + '</td><td>' + esc(String(t.side || "").toUpperCase()) + '</td><td>' + usd(t.entry) + '</td><td>' + usd(t.exit) + '</td><td>' + usd(t.notional) +
+    '</td><td class="' + cls(t.result_usd) + '">' + (t.result_usd == null ? "open" : sgn(t.result_usd) + " (" + pn(t.result_pct, true) + ")") + '</td><td class="tr-reason">' + esc(t.reason || "") + '</td></tr>').join("");
+  el.innerHTML = lbl("Trade log") + '<div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Date</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>Notional</th><th>Result</th><th>Reason</th></tr></thead><tbody>' + body + '</tbody></table></div>';
 }
 
 function renderCurve(h) {
   const el = $("trCurve");
-  const pts = (h || []).map((x) => ({ t: Date.parse(x.ts), e: num(x.equity) })).filter((x) => x.e != null);
-  if (pts.length < 2) { el.innerHTML = '<div class="tr-label">Equity · 1 month</div>' + empty("Not enough history yet."); return; }
+  const pts = (h || []).map((x) => ({ t: Date.parse(x.ts), e: num(x.balance) })).filter((x) => x.e != null);
+  if (pts.length < 2) { el.innerHTML = lbl("Virtual balance · 1 month") + empty("Not enough history yet."); return; }
   const W = 600, H = 180, P = 8;
   const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
   let lo = Math.min.apply(null, pts.map((p) => p.e)), hi = Math.max.apply(null, pts.map((p) => p.e));
-  if (hi === lo) { hi += 1; lo -= 1; }
+  if (hi === lo) { hi += 0.01; lo -= 0.01; }
   const x = (t) => P + ((t - t0) / (t1 - t0 || 1)) * (W - 2 * P);
   const y = (e) => H - P - ((e - lo) / (hi - lo)) * (H - 2 * P);
   const d = pts.map((p, i) => (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.e).toFixed(1)).join(" ");
-  const up = pts[pts.length - 1].e >= pts[0].e;
-  const col = up ? "#2db3a0" : "#e0645a";
-  el.innerHTML = '<div class="tr-label">Equity · 1 month</div><div class="tr-chart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Equity curve"><path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="2.5" stroke-linejoin="round"/></svg></div>' +
+  const col = pts[pts.length - 1].e >= pts[0].e ? "#2db3a0" : "#e0645a";
+  el.innerHTML = lbl("Virtual balance · 1 month") + '<div class="tr-chart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Virtual balance curve"><path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="2.5" stroke-linejoin="round"/></svg></div>' +
     '<div class="tr-row3" style="grid-template-columns:1fr 1fr;margin-top:8px"><div class="tr-stat-label">Low ' + usd(lo) + '</div><div class="tr-stat-label" style="text-align:right">High ' + usd(hi) + '</div></div>';
 }
 
 function renderScore(s) {
   const el = $("trScore");
-  if (!s) { el.innerHTML = '<div class="tr-label">Weekly scorecard</div>' + empty("No data yet."); return; }
+  if (!s) { el.innerHTML = lbl("Weekly scorecard") + empty("No data yet."); return; }
   const stat = (l, v, c) => '<div><div class="tr-stat-label">' + l + '</div><div class="tr-stat-val ' + (v === "—" ? "" : "on ") + (c || "") + '">' + v + '</div></div>';
-  el.innerHTML = '<div class="tr-label">Weekly scorecard</div><div class="tr-stats">' +
+  el.innerHTML = lbl("Weekly scorecard") + '<div class="tr-stats">' +
     stat("Win rate", s.win_rate == null ? "—" : Math.round(s.win_rate * 100) + "%") +
     stat("Avg win", s.avg_win == null ? "—" : sgn(s.avg_win), cls(s.avg_win)) +
     stat("Avg loss", s.avg_loss == null ? "—" : sgn(s.avg_loss), cls(s.avg_loss)) +
     stat("Net P&amp;L", sgn(s.net_pnl), cls(s.net_pnl)) +
-    stat("Realized", sgn(s.realized_pnl), cls(s.realized_pnl)) +
-    stat("Max drawdown", s.max_drawdown == null ? "—" : usd(s.max_drawdown) + " (" + pct(s.max_drawdown_pct) + ")") +
-    '</div><div class="tr-empty" style="margin-top:12px">' + (s.closed_trades ? s.closed_trades + " closed trade" + (s.closed_trades === 1 ? "" : "s") + " this week" : "No trades yet.") + '</div>';
+    stat("Max drawdown", pn(s.max_drawdown_pct)) +
+    stat("Closed trades", s.closed_trades ? String(s.closed_trades) : "—") +
+    '</div>' + (s.closed_trades ? "" : '<div class="tr-empty" style="margin-top:12px">No closed trades yet this week.</div>');
+}
+
+function renderFills(rows) {
+  const el = $("trFills");
+  const head = lbl("Fills from the Alpaca paper account");
+  if (!rows || !rows.length) { el.innerHTML = head + empty("No fills yet."); return; }
+  const body = rows.map((t) => '<tr><td>' + esc(etTime(t.filled_at)) + '</td><td>' + esc(t.symbol) + '</td><td>' + esc(String(t.side || "").toUpperCase()) + '</td><td>' + qtyFmt(t.filled_qty) + '</td><td>' + usd(t.filled_avg_price) + '</td></tr>').join("");
+  el.innerHTML = head + '<div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Time (ET)</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Fill</th></tr></thead><tbody>' + body + '</tbody></table></div>';
 }
 
 function renderStale(last) {
@@ -197,9 +209,9 @@ async function loadTrading() {
     const r = await fetch(TR_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
-    $("trUpdated").textContent = d.last_snapshot_at ? "Last updated " + etTime(d.last_snapshot_at) : "No snapshot yet";
+    $("trUpdated").textContent = d.last_snapshot_at ? "Last updated " + etTime(d.last_snapshot_at) : "No snapshot from Tyche yet";
     renderStale(d.last_snapshot_at);
-    renderAccount(d.account); renderPositions(d.positions); renderTrades(d.recent_trades); renderCurve(d.equity_history); renderScore(d.scorecard);
+    renderAccount(d.virtual); renderPositions(d.positions); renderTrades(d.trades); renderCurve(d.balance_history); renderScore(d.scorecard); renderFills(d.alpaca_fills);
   } catch (e) {
     $("trUpdated").textContent = "Couldn't load trading data.";
   }
@@ -212,7 +224,7 @@ $("trRefresh").addEventListener("click", async () => {
     if (!r.ok) throw new Error("HTTP " + r.status);
     await loadTrading();
   } catch (e) { $("trUpdated").textContent = "Refresh failed. Try again."; }
-  b.disabled = false; b.textContent = "Refresh snapshot";
+  b.disabled = false; b.textContent = "Refresh";
 });
 
 loadTrading();
