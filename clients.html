@@ -193,6 +193,40 @@
   .edit-contact-btn, .save-contact-btn, .cancel-contact-btn { min-height:44px; font-size:12.5px; }
   .add-link { color:var(--gold); text-decoration:none; font-size:12.5px; padding:12px 0; display:inline-block; }
   .status-empty { font-family:'DM Mono',monospace; font-size:12px; color:var(--gray); margin-top:16px; }
+
+  /* Recovery Watch dropdown */
+  .rw-wrap { margin-top:28px; border-top:1px solid var(--border); padding-top:6px; }
+  .rw-head { display:flex; align-items:center; gap:12px; width:100%; min-height:48px; padding:12px 0; background:none; border:none; color:var(--white); cursor:pointer; text-align:left; font-family:'DM Sans',sans-serif; }
+  .rw-head:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  .rw-title { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.3em; color:var(--gold-dim); text-transform:uppercase; }
+  .rw-badge { font-family:'DM Mono',monospace; font-size:11px; color:var(--teal); border:1px solid rgba(45,179,160,0.4); background:rgba(45,179,160,0.12); border-radius:10px; padding:1px 8px; }
+  .rw-chev { margin-left:auto; font-size:14px; color:var(--gold-dim); transition:transform 0.2s; }
+  .rw-head[aria-expanded="true"] .rw-chev { transform:rotate(180deg); }
+  .rw-panel[hidden] { display:none; }
+  .rw-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-top:12px; }
+  .rw-tag { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; border-radius:3px; display:inline-block; margin-bottom:8px; }
+  .rw-tag.competitor { background:rgba(224,152,58,0.15); color:#e0983a; border:1px solid rgba(224,152,58,0.3); }
+  .rw-tag.trend { background:rgba(45,179,160,0.15); color:var(--teal); border:1px solid rgba(45,179,160,0.3); }
+  .rw-tag.acquisition { background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); }
+  .rw-item-title { font-size:15px; font-weight:600; color:var(--white); margin-bottom:6px; line-height:1.3; }
+  .rw-item-summary { font-size:13px; color:var(--gray); line-height:1.5; }
+  .rw-link { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold-dim); display:inline-block; text-decoration:none; padding:12px 0 0; }
+  .rw-date { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; }
+  .rw-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); padding:20px 0; text-align:center; }
+  .rw-note.err { color:#d94040; }
+  .rw-brief { background:var(--card); border:1px solid rgba(45,179,160,0.3); border-radius:10px; padding:18px 20px; margin-top:12px; }
+  .rw-brief-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; color:var(--teal); text-transform:uppercase; margin-bottom:10px; }
+  .rw-actions-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:10px; }
+  .rw-action { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--border); font-size:13px; line-height:1.5; color:var(--white); }
+  .rw-action:first-of-type { border-top:none; }
+  .rw-num { font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--gold); flex-shrink:0; }
+  .rw-week { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:14px; }
+  .rw-take { list-style:none; margin:0 0 6px; padding:0; }
+  .rw-take li { position:relative; padding:6px 0 6px 16px; font-size:14px; line-height:1.5; color:var(--white); }
+  .rw-take li::before { content:''; position:absolute; left:2px; top:14px; width:6px; height:6px; border-radius:50%; background:var(--teal); }
+  .rw-more { background:none; border:none; color:var(--teal); font-family:'DM Mono',monospace; font-size:12.5px; padding:12px 0; min-height:44px; cursor:pointer; }
+  .rw-full { display:none; font-size:13px; color:var(--gray); line-height:1.6; margin-bottom:14px; }
+  .rw-full.open { display:block; }
 </style>
 </head>
 <body>
@@ -212,6 +246,15 @@
     <span class="inactive-toggle-chevron" id="inactiveChevron">▾</span>
   </div>
   <div id="inactiveSection" class="inactive-section"></div>
+  <section class="rw-wrap" id="recovery-watch">
+    <button class="rw-head" id="rwHead" type="button" aria-expanded="false" aria-controls="rwPanel" onclick="rwToggle()">
+      <span class="rw-title">Recovery Watch</span><span class="rw-badge" id="rwBadge">…</span><span class="rw-chev" aria-hidden="true">▾</span>
+    </button>
+    <div class="rw-panel" id="rwPanel" hidden>
+      <div id="rwBrief"></div>
+      <div id="rwList"></div>
+    </div>
+  </section>
 </main>
 <footer>
   <span>RVLTN PERFORMANCE</span>
@@ -780,6 +823,57 @@ async function loadClients() {
   }
 }
 
+/* ---- Recovery Watch dropdown (moved from the old Recovery Watch page; same endpoint, same rendering) ---- */
+const RW_URL = "https://affable-chachalaca.pikapod.net/webhook/recovery-watch-data";
+function rwEsc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function rwFmtDate(iso) { if (!iso) return ''; return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+function rwBriefBlock(text) {
+  const sentences = String(text).replace(/\s+/g, ' ').trim().match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || [String(text)];
+  const pts = sentences.map(x => x.trim()).filter(Boolean);
+  const top = pts.slice(0, 3);
+  return '<ul class="rw-take">' + top.map(x => '<li>' + rwEsc(x) + '</li>').join('') + '</ul>' +
+    (pts.length > 3 ? '<div class="rw-full" id="rwFull">' + rwEsc(pts.slice(3).join(' ')) + '</div><button class="rw-more" type="button" onclick="var f=document.getElementById(\'rwFull\');var o=f.classList.toggle(\'open\');this.textContent=o?\'Show less\':\'Read more\';">Read more</button>' : '');
+}
+function rwSetOpen(open) {
+  document.getElementById('rwHead').setAttribute('aria-expanded', open ? 'true' : 'false');
+  document.getElementById('rwPanel').hidden = !open;
+  try { localStorage.setItem('talos_rw_open', open ? '1' : '0'); } catch (e) {}
+}
+function rwToggle() { rwSetOpen(document.getElementById('rwHead').getAttribute('aria-expanded') !== 'true'); }
+async function loadRecoveryWatch() {
+  const listEl = document.getElementById('rwList'), briefEl = document.getElementById('rwBrief'), badge = document.getElementById('rwBadge');
+  try {
+    const response = await fetch(RW_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
+    if (!response.ok) throw new Error("Server returned " + response.status);
+    const data = await response.json();
+    const items = data.items || [];
+    badge.textContent = items.length;
+    if (data.brief && data.brief.brief_text) {
+      let actions = [];
+      try { actions = typeof data.brief.recommended_actions === 'string' ? JSON.parse(data.brief.recommended_actions) : (data.brief.recommended_actions || []); } catch (e) {}
+      briefEl.innerHTML = '<div class="rw-brief"><div class="rw-brief-label">This Week\'s Brief</div>' + rwBriefBlock(data.brief.brief_text) +
+        (actions.length ? '<div class="rw-actions-label">Recommended Actions</div>' + actions.map((a, i) => '<div class="rw-action"><div class="rw-num">' + (i + 1) + '</div><div>' + a + '</div></div>').join('') : '') +
+        '<div class="rw-week">Week of ' + rwFmtDate(data.brief.week_of) + '</div></div>';
+    }
+    if (!items.length) { listEl.innerHTML = '<div class="rw-note">Nothing new found yet — checks run weekly</div>'; return; }
+    listEl.innerHTML = items.map(i => '<div class="rw-card"><div class="rw-tag ' + rwEsc(i.category) + '">' + rwEsc(i.category) + '</div>' +
+      '<div class="rw-item-title">' + i.title + '</div><div class="rw-item-summary">' + i.summary + '</div>' +
+      (i.source_url ? '<a class="rw-link" href="' + i.source_url + '" target="_blank" rel="noopener">View source →</a>' : '') +
+      '<div class="rw-date">Found ' + rwFmtDate(i.found_date) + '</div></div>').join('');
+  } catch (err) {
+    badge.textContent = '–';
+    listEl.innerHTML = '<div class="rw-note err">Couldn\'t load: ' + rwEsc(err.message) + '</div>';
+  }
+}
+(function rwInit() {
+  let open = false;
+  try { open = localStorage.getItem('talos_rw_open') === '1'; } catch (e) {}
+  if (location.hash === '#recovery-watch') open = true;
+  rwSetOpen(open);
+  loadRecoveryWatch();
+  if (location.hash === '#recovery-watch') setTimeout(() => { const el = document.getElementById('recovery-watch'); if (el) el.scrollIntoView(); }, 600);
+})();
+
 loadClients();
 </script>
 
@@ -791,7 +885,7 @@ loadClients();
   <a href="index.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Home</span></a>
   <a href="clients.html" class="active"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clients</span></a>
   <a href="clinics.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clinics</span></a>
-  <a href="recovery-watch.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Recovery</span></a>
+  <a href="trading.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Trading</span></a>
   <a href="nido.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Nido</span></a>
 </nav>
 
