@@ -1126,6 +1126,18 @@ function updateNeedsYou() {
   document.getElementById('needsYou').style.display = (total > 0 || window.nyError) ? 'block' : 'none';
   document.getElementById('statFocus').textContent = total;
 }
+// Strip stray emoji glyphs that legacy strings still produce (no-emoji rule)
+(function () {
+  const bad = new RegExp('[' + String.fromCodePoint(0x2600) + '-' + String.fromCodePoint(0x26FF) + String.fromCodePoint(0xFE0F) + ']', 'g');
+  const sel = '.confirmation-error, .brief-modal-label > span:first-child';
+  const clean = el => { bad.lastIndex = 0; if (el && el.textContent && bad.test(el.textContent)) { bad.lastIndex = 0; el.textContent = el.textContent.replace(bad, '').trim(); } bad.lastIndex = 0; };
+  new MutationObserver(ms => { ms.forEach(m => {
+    const t = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+    if (t && t.matches && t.matches(sel)) clean(t);
+    m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (n.matches(sel)) clean(n); n.querySelectorAll(sel).forEach(clean); } });
+  }); }).observe(document.body, { childList: true, subtree: true, characterData: true });
+})();
+
 const PIPELINE_URL = "https://affable-chachalaca.pikapod.net/webhook/pipeline-overview";
 async function loadPipelineNeeds() {
   const el = document.getElementById('pipelineNeeds');
