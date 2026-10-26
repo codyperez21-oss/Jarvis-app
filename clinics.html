@@ -156,6 +156,8 @@
   .pl-ev { border-left:2px solid var(--border); padding:2px 0 2px 10px; margin-top:10px; }
   .pl-ev-top { font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:0.05em; color:var(--gold-dim); text-transform:uppercase; }
   .pl-ev-txt { font-size:12.5px; color:var(--white); margin-top:2px; word-break:break-word; }
+  .pl-draft { font-size:12.5px; color:var(--white); margin-top:6px; padding:10px 12px; background:#0c0c0c; border:1px solid var(--border); border-radius:8px; white-space:pre-wrap; word-break:break-word; max-height:320px; overflow:auto; }
+  .pl-draft-meta { font-family:'DM Mono',monospace; font-size:9.5px; color:var(--gold-dim); margin-top:4px; }
   .pl-ev-reply { font-size:12px; color:var(--gray); margin-top:4px; padding:6px 8px; background:#0c0c0c; border-radius:6px; white-space:pre-wrap; }
   .pl-sec { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin:16px 0 4px; }
   .pl-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
@@ -616,6 +618,7 @@ function plToggle(id) {
   plLoadDetail(id);
 }
 
+const plDraftIds = {};
 async function plLoadDetail(id) {
   const box = document.getElementById('pld-' + id);
   if (!box) return;
@@ -633,6 +636,14 @@ async function plLoadDetail(id) {
     if (plUrl(lead.contact_form_url)) info.push('<a href="' + plUrl(lead.contact_form_url) + '" target="_blank" rel="noopener">Contact form</a>');
     if (lead.address) info.push(plEsc(lead.address));
     if (lead.notes) info.push('Notes: ' + plEsc(lead.notes));
+    const drafts = (d.events || []).filter(e => e.event_type === 'draft_ready');
+    const latestDraft = drafts.reduce((m, e) => (!m || e.id > m.id) ? e : m, null);
+    plDraftIds[id] = latestDraft ? latestDraft.id : null;
+    const draftHtml = latestDraft
+      ? '<div class="pl-sec">Latest draft (what you are approving)</div>' +
+        (latestDraft.draft_text_untrusted ? '<div class="pl-draft">' + plEsc(latestDraft.draft_text_untrusted) + '</div>' : '<div class="pl-empty">Apollo sent no draft text. Ask Apollo to resend before approving.</div>') +
+        '<div class="pl-draft-meta">Draft #' + plEsc(latestDraft.id) + (latestDraft.draft_hash ? ' · sha256 ' + plEsc(String(latestDraft.draft_hash).slice(0, 12)) : '') + '</div>'
+      : '';
     const evs = (d.events || []).map(e => {
       const who = e.source === 'grok-bot' ? 'Apollo' : (e.source === 'cody' ? 'You' : plEsc(e.source));
       const stage = e.new_status ? ' → ' + plEsc(PL_STATUS_LABEL[e.new_status] || e.new_status) : '';
@@ -643,6 +654,7 @@ async function plLoadDetail(id) {
     }).join('');
     box.innerHTML =
       '<div class="pl-info">' + (info.length ? info.join('<br>') : 'No contact details on file yet.') + '</div>' +
+      draftHtml +
       '<div class="pl-sec">Your decision</div>' +
       '<div class="pl-actions">' + PL_DECISIONS.map(x => '<div class="pl-act' + (x[2] ? ' danger' : '') + '" onclick="plDecide(' + id + ',\'' + x[0] + '\',this)">' + x[1] + '</div>').join('') + '</div>' +
       '<input class="pl-note" id="pln-' + id + '" maxlength="280" placeholder="Optional note for Apollo">' +
@@ -658,7 +670,7 @@ async function plDecide(id, decision, btn) {
   const noteEl = document.getElementById('pln-' + id);
   document.querySelectorAll('#pld-' + id + ' .pl-act').forEach(b => b.classList.add('dis'));
   try {
-    const r = await fetch(PL_BASE + "pipeline-decide", { method: "POST", headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY }, body: JSON.stringify({ leadId: id, decision: decision, note: noteEl ? noteEl.value : '' }) });
+    const r = await fetch(PL_BASE + "pipeline-decide", { method: "POST", headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY }, body: JSON.stringify({ leadId: id, decision: decision, note: noteEl ? noteEl.value : '', draftEventId: (decision === 'approve_outreach' || decision === 'send_followup') ? (plDraftIds[id] || null) : null }) });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || ('Server returned ' + r.status));
     await loadPipeline();
