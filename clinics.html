@@ -165,6 +165,15 @@
   .pl-note { width:100%; margin-top:8px; background:#0c0c0c; border:1px solid var(--border); border-radius:6px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13px; padding:8px 10px; }
   .pl-empty { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); padding:16px 0; }
   .pl-divider { border-top:1px solid var(--border); margin-top:22px; }
+  .pl-region { margin-top:10px; }
+  .pl-region-head { display:flex; justify-content:space-between; align-items:center; gap:10px; background:var(--card-raised); border:1px solid var(--border); border-radius:12px; padding:14px 16px; cursor:pointer; user-select:none; }
+  .pl-region.open .pl-region-head { border-color:var(--grape-dim); }
+  .pl-region-name { font-size:15px; font-weight:600; color:var(--grape); }
+  .pl-region-sub { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:3px; line-height:1.5; }
+  .pl-caret { color:var(--gray); transition:transform 0.2s; flex-shrink:0; }
+  .pl-region.open .pl-caret { transform:rotate(180deg); color:var(--grape); }
+  .pl-region-body { display:none; }
+  .pl-region.open .pl-region-body { display:block; }
 </style>
 </head>
 <body>
@@ -514,7 +523,7 @@ async function loadPeptideWatch() {
 
 loadClinics();
 const PL_BASE = "https://affable-chachalaca.pikapod.net/webhook/";
-let plLeads = [], plFilter = 'all', plOpen = null, plMeta = {};
+let plLeads = [], plFilter = 'all', plOpen = null, plMeta = {}, plRegionOpen = {};
 const PL_GROUPS = [
   ['needs', 'Needs you', l => l.needs_decision],
   ['cold', 'Cold', l => l.status === 'cold'],
@@ -564,7 +573,7 @@ function renderPipeline() {
   const el = document.getElementById('plList');
   if (!total) { el.innerHTML = '<div class="pl-empty">No leads yet. Apollo will populate this as it works.</div>'; return; }
   if (!rows.length) { el.innerHTML = '<div class="pl-empty">Nothing here.</div>'; return; }
-  el.innerHTML = rows.map(l => {
+  const plCard = l => {
     const ev = l.last_event ? (PL_EVENT_LABEL[l.last_event.type] || l.last_event.type) + ' · ' + plWhen(l.last_event.at) : (l.last_touch_date ? 'Last touch ' + plEsc(l.last_touch_date) : 'Not contacted yet');
     return '<div class="pl-lead' + (plOpen === l.id ? ' open' : '') + '" id="pl-' + l.id + '">' +
       '<div class="pl-row" onclick="plToggle(' + l.id + ')"><div>' +
@@ -574,11 +583,31 @@ function renderPipeline() {
           (l.pending_decision ? '<span class="pl-tag pend">Waiting on Apollo: ' + plEsc(l.pending_decision.decision.replace(/_/g, ' ')) + (l.pending_decision.ack === 'failed' ? ' (failed)' : '') + '</span>' : '') + '</div>' +
       '</div><div class="pl-badge ' + plBadgeClass(l.status) + '">' + plEsc(PL_STATUS_LABEL[l.status] || l.status) + '</div></div>' +
       '<div class="pl-detail" id="pld-' + l.id + '">' + (plOpen === l.id ? '<div class="pl-empty">Loading…</div>' : '') + '</div></div>';
+  };
+  const groups = {};
+  rows.forEach(l => { const t = l.territory || 'Other'; (groups[t] = groups[t] || []).push(l); });
+  const names = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+  el.innerHTML = names.map(t => {
+    const items = groups[t];
+    const open = plRegionOpen[t] !== undefined ? plRegionOpen[t] : (plFilter !== 'all');
+    const needs = items.filter(l => l.needs_decision).length;
+    const stages = PL_GROUPS.filter(g => g[0] !== 'needs').map(g => [g[1], items.filter(g[2]).length]).filter(x => x[1] > 0).map(x => x[0] + ' ' + x[1]).join(' · ');
+    return '<div class="pl-region' + (open ? ' open' : '') + '"><div class="pl-region-head" data-r="' + plEsc(t) + '" onclick="plToggleRegion(this.dataset.r)"><div>' +
+      '<div class="pl-region-name">' + plEsc(t) + ' · ' + items.length + '</div>' +
+      '<div class="pl-region-sub">' + plEsc(stages) + '</div>' +
+      (needs ? '<div class="pl-tags"><span class="pl-tag">' + needs + ' need your decision</span></div>' : '') +
+      '</div><svg class="pl-caret" width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>' +
+      '<div class="pl-region-body">' + items.map(plCard).join('') + '</div></div>';
   }).join('');
   if (plOpen !== null) plLoadDetail(plOpen);
 }
 
-function plSetFilter(f) { plFilter = f; plOpen = null; renderPipeline(); }
+function plSetFilter(f) { plFilter = f; plOpen = null; plRegionOpen = {}; renderPipeline(); }
+function plToggleRegion(t) {
+  const cur = plRegionOpen[t] !== undefined ? plRegionOpen[t] : (plFilter !== 'all');
+  plRegionOpen[t] = !cur;
+  renderPipeline();
+}
 function plToggle(id) {
   if (plOpen === id) { plOpen = null; document.getElementById('pl-' + id).classList.remove('open'); return; }
   if (plOpen !== null) { const prev = document.getElementById('pl-' + plOpen); if (prev) prev.classList.remove('open'); }
