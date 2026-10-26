@@ -37,7 +37,7 @@
   main { padding:0 20px; max-width:640px; margin:0 auto; }
 
   header { padding-left:max(20px, calc((100% - 640px) / 2 + 20px)); padding-right:max(20px, calc((100% - 640px) / 2 + 20px)); }
-  .tr-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .tr-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; margin-top:16px; }
   .tr-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
   .tr-card.wide { grid-column:1 / -1; }
   .tr-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:12px; }
@@ -46,7 +46,28 @@
   .tr-stat-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-bottom:4px; }
   .tr-stat-val { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--gray-dim); letter-spacing:0.03em; }
   .tr-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:16px; line-height:1.6; }
-  @media (max-width:420px) { .tr-grid { grid-template-columns:1fr; } }
+
+  .tr-badge { display:inline-block; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.2em; color:#0a0a0a; background:var(--amber); padding:2px 7px; border-radius:4px; margin-left:8px; vertical-align:middle; }
+  .tr-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; }
+  .tr-updated { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+  .tr-refresh { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.08em; color:var(--teal); background:transparent; border:1px solid var(--teal); border-radius:6px; padding:6px 12px; cursor:pointer; }
+  .tr-refresh[disabled] { opacity:0.5; }
+  .tr-stale { display:none; margin-top:10px; font-family:'DM Mono',monospace; font-size:12px; color:var(--amber); border:1px solid var(--amber); border-radius:8px; padding:8px 12px; }
+  .tr-stale.show { display:block; }
+  .tr-stat-val { font-size:18px; }
+  .tr-big { font-family:'Bebas Neue',sans-serif; font-size:40px; letter-spacing:0.03em; color:var(--white); line-height:1; }
+  .tr-row3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+  .tr-pos { color:var(--teal); } .tr-neg { color:#e0645a; }
+  .tr-tbl { width:100%; min-width:100%; border-collapse:collapse; font-family:'DM Mono',monospace; font-size:11px; }
+  .tr-tbl th { text-align:right; color:var(--gold-dim); font-weight:400; padding:0 0 8px 8px; letter-spacing:0.08em; font-size:10px; text-transform:uppercase; }
+  .tr-tbl td { text-align:right; padding:7px 0 7px 8px; border-top:1px solid var(--border); white-space:nowrap; }
+  .tr-tbl th:first-child, .tr-tbl td:first-child { text-align:left; padding-left:0; }
+  .tr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .tr-chart svg { width:100%; height:auto; display:block; }
+  .tr-stat-val.on { color:var(--white); }
+  @media (max-width:420px) { .tr-grid { grid-template-columns:minmax(0,1fr); } }
+  .tr-card { min-width:0; }
+  .tr-stat-val { font-size:18px; }
 </style>
 </head>
 <body>
@@ -54,22 +75,18 @@
 <header>
   <div class="eyebrow">Markets</div>
   <div class="page-title">Trading</div>
-  <div class="page-sub">Paper account · display only</div>
+  <div class="page-sub">Paper account · display only<span class="tr-badge">PAPER</span></div>
 </header>
 
 <main>
+  <div class="tr-bar"><div class="tr-updated" id="trUpdated">Loading…</div><button class="tr-refresh" id="trRefresh" type="button">Refresh snapshot</button></div>
+  <div class="tr-stale" id="trStale"></div>
   <div class="tr-grid">
-    <div class="tr-card"><div class="tr-label">Account balance (paper)</div><div class="tr-empty">No data yet</div></div>
-    <div class="tr-card"><div class="tr-label">Open positions</div><div class="tr-empty">No data yet</div></div>
-    <div class="tr-card wide"><div class="tr-label">Recent trades</div><div class="tr-empty">No data yet</div></div>
-    <div class="tr-card wide"><div class="tr-label">Weekly scorecard</div>
-      <div class="tr-stats">
-        <div><div class="tr-stat-label">Win rate</div><div class="tr-stat-val">—</div></div>
-        <div><div class="tr-stat-label">Net P&amp;L</div><div class="tr-stat-val">—</div></div>
-        <div><div class="tr-stat-label">Max drawdown</div><div class="tr-stat-val">—</div></div>
-      </div>
-      <div class="tr-empty" style="margin-top:12px">No data yet</div>
-    </div>
+    <div class="tr-card wide" id="trAcct"><div class="tr-label">Account (paper)</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trPos"><div class="tr-label">Open positions</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trTrades"><div class="tr-label">Recent trades</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trCurve"><div class="tr-label">Equity · 1 month</div><div class="tr-empty">Loading…</div></div>
+    <div class="tr-card wide" id="trScore"><div class="tr-label">Weekly scorecard</div><div class="tr-empty">Loading…</div></div>
   </div>
   <div class="tr-note">This page only displays. It never places, approves or changes trades.</div>
 </main>
@@ -86,5 +103,119 @@
   <a href="nido.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Nido</span></a>
 </nav>
 
+<script>
+const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+const TR_URL = "https://affable-chachalaca.pikapod.net/webhook/trading-overview";
+const TR_REFRESH_URL = "https://affable-chachalaca.pikapod.net/webhook/trading-refresh";
+const ET = "America/New_York";
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const num = (v) => (v == null || v === "" || isNaN(Number(v)) ? null : Number(v));
+const usd = (v) => { const n = num(v); return n == null ? "—" : (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+const sgn = (v) => { const n = num(v); return n == null ? "—" : (n > 0 ? "+" : n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+const pct = (v, signed) => { const n = num(v); return n == null ? "—" : (signed && n > 0 ? "+" : "") + (n * 100).toFixed(2) + "%"; };
+const cls = (v) => { const n = num(v); return n > 0 ? "tr-pos" : n < 0 ? "tr-neg" : ""; };
+const qtyFmt = (v) => { const n = num(v); return n == null ? "—" : String(Math.round(n * 10000) / 10000); };
+const etTime = (iso) => new Date(iso).toLocaleString("en-US", { timeZone: ET, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET";
+const empty = (t) => '<div class="tr-empty">' + esc(t) + "</div>";
+
+function marketOpenNow() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: ET, weekday: "short", hour: "numeric", minute: "numeric", hour12: false }).formatToParts(new Date());
+  const g = (t) => parts.find((p) => p.type === t).value;
+  const mins = (parseInt(g("hour"), 10) % 24) * 60 + parseInt(g("minute"), 10);
+  return ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(g("weekday")) && mins >= 570 && mins < 960;
+}
+
+function renderAccount(a) {
+  const el = $("trAcct");
+  if (!a) { el.innerHTML = '<div class="tr-label">Account (paper)</div>' + empty("No snapshot yet"); return; }
+  const day = num(a.equity) != null && num(a.last_equity) != null ? num(a.equity) - num(a.last_equity) : null;
+  const dayPct = day != null && num(a.last_equity) ? day / num(a.last_equity) : null;
+  el.innerHTML = '<div class="tr-label">Account (paper)</div><div class="tr-big">' + usd(a.equity) + '</div>' +
+    '<div class="tr-stat-label" style="margin-top:6px">Equity</div>' +
+    '<div class="tr-row3"><div><div class="tr-stat-label">Cash</div><div class="tr-stat-val on">' + usd(a.cash) + '</div></div>' +
+    '<div><div class="tr-stat-label">Buying power</div><div class="tr-stat-val on">' + usd(a.buying_power) + '</div></div>' +
+    '<div><div class="tr-stat-label">Today</div><div class="tr-stat-val ' + cls(day) + '">' + sgn(day) + '</div><div class="tr-stat-label ' + cls(day) + '">' + pct(dayPct, true) + '</div></div></div>';
+}
+
+function renderPositions(rows) {
+  const el = $("trPos");
+  if (!rows || !rows.length) { el.innerHTML = '<div class="tr-label">Open positions</div>' + empty("No open positions."); return; }
+  const body = rows.map((p) => '<tr><td>' + esc(p.symbol) + '</td><td>' + qtyFmt(p.qty) + '</td><td>' + usd(p.avg_entry_price) + '</td><td>' + usd(p.current_price) + '</td><td>' + usd(p.market_value) +
+    '</td><td class="' + cls(p.unrealized_pl) + '">' + sgn(p.unrealized_pl) + ' (' + pct(p.unrealized_plpc, true) + ')</td></tr>').join("");
+  el.innerHTML = '<div class="tr-label">Open positions</div><div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Current</th><th>Value</th><th>Unrealized</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+}
+
+function renderTrades(rows) {
+  const el = $("trTrades");
+  if (!rows || !rows.length) { el.innerHTML = '<div class="tr-label">Recent trades</div>' + empty("No trades yet."); return; }
+  const body = rows.map((t) => '<tr><td>' + esc(etTime(t.filled_at)) + '</td><td>' + esc(t.symbol) + '</td><td>' + esc(String(t.side || "").toUpperCase()) + '</td><td>' + qtyFmt(t.filled_qty) + '</td><td>' + usd(t.filled_avg_price) + '</td><td>' + esc(t.status) + '</td></tr>').join("");
+  el.innerHTML = '<div class="tr-label">Recent trades</div><div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Time (ET)</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Fill</th><th>Status</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+}
+
+function renderCurve(h) {
+  const el = $("trCurve");
+  const pts = (h || []).map((x) => ({ t: Date.parse(x.ts), e: num(x.equity) })).filter((x) => x.e != null);
+  if (pts.length < 2) { el.innerHTML = '<div class="tr-label">Equity · 1 month</div>' + empty("Not enough history yet."); return; }
+  const W = 600, H = 180, P = 8;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  let lo = Math.min.apply(null, pts.map((p) => p.e)), hi = Math.max.apply(null, pts.map((p) => p.e));
+  if (hi === lo) { hi += 1; lo -= 1; }
+  const x = (t) => P + ((t - t0) / (t1 - t0 || 1)) * (W - 2 * P);
+  const y = (e) => H - P - ((e - lo) / (hi - lo)) * (H - 2 * P);
+  const d = pts.map((p, i) => (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.e).toFixed(1)).join(" ");
+  const up = pts[pts.length - 1].e >= pts[0].e;
+  const col = up ? "#2db3a0" : "#e0645a";
+  el.innerHTML = '<div class="tr-label">Equity · 1 month</div><div class="tr-chart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Equity curve"><path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="2.5" stroke-linejoin="round"/></svg></div>' +
+    '<div class="tr-row3" style="grid-template-columns:1fr 1fr;margin-top:8px"><div class="tr-stat-label">Low ' + usd(lo) + '</div><div class="tr-stat-label" style="text-align:right">High ' + usd(hi) + '</div></div>';
+}
+
+function renderScore(s) {
+  const el = $("trScore");
+  if (!s) { el.innerHTML = '<div class="tr-label">Weekly scorecard</div>' + empty("No data yet."); return; }
+  const stat = (l, v, c) => '<div><div class="tr-stat-label">' + l + '</div><div class="tr-stat-val ' + (v === "—" ? "" : "on ") + (c || "") + '">' + v + '</div></div>';
+  el.innerHTML = '<div class="tr-label">Weekly scorecard</div><div class="tr-stats">' +
+    stat("Win rate", s.win_rate == null ? "—" : Math.round(s.win_rate * 100) + "%") +
+    stat("Avg win", s.avg_win == null ? "—" : sgn(s.avg_win), cls(s.avg_win)) +
+    stat("Avg loss", s.avg_loss == null ? "—" : sgn(s.avg_loss), cls(s.avg_loss)) +
+    stat("Net P&amp;L", sgn(s.net_pnl), cls(s.net_pnl)) +
+    stat("Realized", sgn(s.realized_pnl), cls(s.realized_pnl)) +
+    stat("Max drawdown", s.max_drawdown == null ? "—" : usd(s.max_drawdown) + " (" + pct(s.max_drawdown_pct) + ")") +
+    '</div><div class="tr-empty" style="margin-top:12px">' + (s.closed_trades ? s.closed_trades + " closed trade" + (s.closed_trades === 1 ? "" : "s") + " this week" : "No trades yet.") + '</div>';
+}
+
+function renderStale(last) {
+  const el = $("trStale");
+  if (!last) { el.classList.remove("show"); return; }
+  const ageMin = (Date.now() - Date.parse(last)) / 60000;
+  if (marketOpenNow() && ageMin > 30) { el.textContent = "Data may be stale: last snapshot was " + Math.round(ageMin) + " minutes ago during market hours."; el.classList.add("show"); }
+  else el.classList.remove("show");
+}
+
+async function loadTrading() {
+  try {
+    const r = await fetch(TR_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    $("trUpdated").textContent = d.last_snapshot_at ? "Last updated " + etTime(d.last_snapshot_at) : "No snapshot yet";
+    renderStale(d.last_snapshot_at);
+    renderAccount(d.account); renderPositions(d.positions); renderTrades(d.recent_trades); renderCurve(d.equity_history); renderScore(d.scorecard);
+  } catch (e) {
+    $("trUpdated").textContent = "Couldn't load trading data.";
+  }
+}
+
+$("trRefresh").addEventListener("click", async () => {
+  const b = $("trRefresh"); b.disabled = true; b.textContent = "Refreshing…";
+  try {
+    const r = await fetch(TR_REFRESH_URL, { method: "POST", headers: { "X-Api-Key": API_KEY } });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    await loadTrading();
+  } catch (e) { $("trUpdated").textContent = "Refresh failed. Try again."; }
+  b.disabled = false; b.textContent = "Refresh snapshot";
+});
+
+loadTrading();
+</script>
 </body>
 </html>
