@@ -200,6 +200,29 @@
   .pl-bar-btn.primary { background:var(--grape); border-color:var(--grape); color:#0a0a0a; font-weight:600; }
   .pl-bar-btn.dis { opacity:0.4; pointer-events:none; }
   .pl-bar-spacer { height:72px; }
+  /* batch approval */
+  .bt-card { background:var(--card); border:1px solid var(--grape-dim); border-radius:14px; margin-top:12px; overflow:hidden; }
+  .bt-head { padding:14px 16px 10px; }
+  .bt-eyebrow { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--grape); }
+  .bt-label { font-size:17px; font-weight:600; color:var(--white); margin-top:3px; }
+  .bt-meta { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:3px; }
+  .bt-toggle { display:block; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--border); padding:0 16px; min-height:44px; font-family:'DM Mono',monospace; font-size:12px; color:var(--grape); cursor:pointer; }
+  .bt-list { max-height:340px; overflow-y:auto; border-top:1px solid var(--border); background:#101010; }
+  .bt-row { border-bottom:1px solid var(--border); }
+  .bt-row-top { padding:11px 16px; cursor:pointer; }
+  .bt-name { font-size:14px; font-weight:600; color:var(--white); }
+  .bt-first { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bt-full { padding:0 16px 12px; }
+  .bt-remove { margin-top:8px; min-height:44px; padding:0 14px; background:transparent; border:1px solid #7a3a3a; color:#c26b6b; border-radius:6px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; }
+  .bt-foot { display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--border); }
+  .bt-btn { flex:1; min-height:44px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--white); font-family:'DM Mono',monospace; font-size:12.5px; cursor:pointer; }
+  .bt-btn.reject { flex:0 0 auto; padding:0 14px; border-color:#7a3a3a; color:#c26b6b; }
+  .bt-btn.approve { background:var(--grape); border-color:var(--grape); color:#0a0a0a; font-weight:600; }
+  .bt-btn.armed { background:rgba(155,107,214,0.2); color:var(--white); border-color:var(--grape); }
+  .bt-btn.reject.armed { background:rgba(194,107,107,0.15); color:#e08a8a; }
+  .bt-btn.dis { opacity:0.4; pointer-events:none; }
+  .bt-result { padding:10px 16px; font-family:'DM Mono',monospace; font-size:12px; line-height:1.6; color:var(--white); border-top:1px solid var(--border); }
+  .bt-result .bad { color:#e0983a; }
 </style>
 </head>
 <body>
@@ -222,6 +245,7 @@
     <div class="pl-title">Outreach Pipeline</div>
     <div class="pl-sub" id="plSub">Loading…</div>
   </div>
+  <div id="plBatches"></div>
   <div class="pl-chips" id="plChips"></div>
   <div id="plList"></div>
 </main>
@@ -581,10 +605,93 @@ async function loadPipeline() {
     plMeta = d.ingest || {};
     if (!plInit) { plInit = true; if (plLeads.some(l => l.needs_decision)) plFilter = 'needs'; }
     renderPipeline();
+    loadBatches();
   } catch (e) {
     document.getElementById('plSub').textContent = '';
     document.getElementById('plList').innerHTML = '<div class="error-note">Couldn\'t load pipeline: ' + plEsc(e.message) + '</div>';
   }
+}
+
+let plBatches = [], btOpen = {}, btRow = {}, btArm = null, btResult = {};
+async function loadBatches() {
+  const el = document.getElementById('plBatches');
+  try {
+    const r = await fetch(PL_BASE + "pipeline-batches", { headers: { "X-Api-Key": API_KEY } });
+    if (!r.ok) throw new Error("Server returned " + r.status);
+    const d = await r.json();
+    plBatches = d.batches || [];
+    renderBatches();
+  } catch (e) { plBatches = []; el.innerHTML = ''; }
+}
+function btKey(b, what) { return what + ':' + b; }
+function btArmed(key) { return btArm && btArm.key === key; }
+function btArmNow(key) {
+  if (btArm) clearTimeout(btArm.t);
+  btArm = { key: key, t: setTimeout(() => { btArm = null; renderBatches(); }, 4000) };
+  renderBatches();
+}
+function renderBatches() {
+  const el = document.getElementById('plBatches');
+  const ids = new Set(plBatches.map(b => b.batch_id));
+  const all = plBatches.concat(Object.keys(btResult).filter(k => !ids.has(k)).map(k => ({ batch_id: k, ghost: true })));
+  el.innerHTML = all.map(b => {
+    const bid = plEsc(b.batch_id);
+    const res = btResult[b.batch_id];
+    const resHtml = res ? '<div class="bt-result">' + res + '</div>' : '';
+    if (b.ghost) return '<div class="bt-card">' + resHtml + '</div>';
+    const n = b.count;
+    const open = !!btOpen[b.batch_id];
+    const kind = b.kind === 'followup' ? 'follow-up' : (b.kind === 'mixed' ? 'outreach + follow-up' : 'outreach');
+    const ak = btKey(b.batch_id, 'approve'), rk = btKey(b.batch_id, 'reject');
+    const rows = open ? '<div class="bt-list">' + b.items.map(it => {
+      const rkey = b.batch_id + '|' + it.draft_event_id;
+      const ro = !!btRow[rkey];
+      return '<div class="bt-row"><div class="bt-row-top" onclick="btToggleRow(\'' + bid + '\',' + it.draft_event_id + ')">' +
+        '<div class="bt-name">' + plEsc(it.practice_name) + '</div>' +
+        '<div class="bt-first">' + plEsc(it.first_line) + '</div></div>' +
+        (ro ? '<div class="bt-full"><div class="pl-draft">' + plEsc(it.draft_text) + '</div>' +
+          '<div class="pl-draft-meta">Draft #' + plEsc(it.draft_event_id) + ' · sha256 ' + plEsc(it.draft_hash_short) + '</div>' +
+          '<button class="bt-remove" onclick="btRemove(' + it.lead_id + ',' + it.draft_event_id + ')">Remove from batch</button></div>' : '') + '</div>';
+    }).join('') + '</div>' : '';
+    return '<div class="bt-card" id="bt-' + bid + '"><div class="bt-head"><div class="bt-eyebrow">Batch · ' + plEsc(kind) + '</div>' +
+      '<div class="bt-label">' + plEsc(b.label) + '</div>' +
+      '<div class="bt-meta">' + n + ' draft' + (n !== 1 ? 's' : '') + ' · ' + plEsc((b.regions || []).join(', ')) + '</div></div>' +
+      '<button class="bt-toggle" onclick="btToggle(\'' + bid + '\')">' + (open ? 'Hide drafts' : 'Review ' + n + ' draft' + (n !== 1 ? 's' : '')) + '</button>' + rows + resHtml +
+      '<div class="bt-foot"><button class="bt-btn reject' + (btArmed(rk) ? ' armed' : '') + '" onclick="btAct(\'' + bid + '\',\'reject\')">' + (btArmed(rk) ? 'Tap again to reject' : 'Reject batch') + '</button>' +
+      '<button class="bt-btn approve' + (btArmed(ak) ? ' armed' : '') + '" onclick="btAct(\'' + bid + '\',\'approve\')">' + (btArmed(ak) ? 'Tap again: approve ' + n : 'Approve batch (' + n + ')') + '</button></div></div>';
+  }).join('');
+}
+function btToggle(b) { btOpen[b] = !btOpen[b]; renderBatches(); }
+function btToggleRow(b, id) { const k = b + '|' + id; btRow[k] = !btRow[k]; renderBatches(); }
+async function btAct(batchId, action) {
+  const key = btKey(batchId, action);
+  if (!btArmed(key)) { btArmNow(key); return; }
+  clearTimeout(btArm.t); btArm = null;
+  const b = plBatches.find(x => x.batch_id === batchId);
+  if (!b) return;
+  document.querySelectorAll('#bt-' + CSS.escape(batchId) + ' .bt-btn').forEach(x => x.classList.add('dis'));
+  try {
+    const r = await fetch(PL_BASE + "pipeline-batch-decide", { method: "POST", headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
+      body: JSON.stringify({ batchId: batchId, action: action, draftEventIds: b.items.map(i => i.draft_event_id) }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || d.message || ('Server returned ' + r.status));
+    let msg = (action === 'approve' ? 'Approved ' : 'Rejected ') + d.decided + ' of ' + b.items.length + '.';
+    if (d.skipped && d.skipped.length) msg += d.skipped.map(s => '<div class="bad">Not included: ' + plEsc(s.practice_name || ('draft #' + s.draft_event_id)) + ' (' + plEsc(s.reason) + ')</div>').join('');
+    if (d.new_unreviewed) msg += '<div class="bad">' + d.new_unreviewed + ' new draft' + (d.new_unreviewed !== 1 ? 's' : '') + ' arrived after you opened this and still need review.</div>';
+    btResult[batchId] = msg;
+    await loadPipeline();
+  } catch (e) {
+    btResult[batchId] = '<div class="bad">Couldn\'t save: ' + plEsc(e.message) + '</div>';
+    renderBatches();
+  }
+}
+async function btRemove(leadId, draftEventId) {
+  try {
+    const r = await fetch(PL_BASE + "pipeline-batch-remove", { method: "POST", headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY }, body: JSON.stringify({ leadId: leadId, draftEventId: draftEventId }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || ('Server returned ' + r.status));
+    await loadBatches();
+  } catch (e) { alert('Couldn\'t remove: ' + e.message); }
 }
 
 function renderPipeline() {
