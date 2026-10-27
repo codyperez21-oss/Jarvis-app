@@ -146,6 +146,12 @@
   .pl-badge.hot { color:#0a0a0a; background:var(--gold); border-color:var(--gold); }
   .pl-badge.won { color:#6fcf8f; border-color:#2d6644; }
   .pl-badge.closed { color:#c26b6b; border-color:#5a2d2d; }
+  .pl-badge.reopened { color:#9fd6c2; border-color:#2f6b5a; }
+  .pl-tag.reopen { background:rgba(111,207,170,0.1); color:#9fd6c2; border-color:rgba(111,207,170,0.3); }
+  .pl-reopen { margin-top:10px; }
+  .pl-reopen-form { display:none; margin-top:8px; }
+  .pl-reopen-form.show { display:block; }
+  .pl-blocked { font-family:'DM Mono',monospace; font-size:11px; color:#c26b6b; margin-top:6px; word-break:break-all; }
   .pl-tags { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
   .pl-tag { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.05em; border-radius:3px; padding:2px 6px; background:rgba(201,168,76,0.1); color:var(--gold); border:1px solid rgba(201,168,76,0.25); }
   .pl-tag.pend { background:rgba(155,107,214,0.1); color:var(--grape); border-color:rgba(155,107,214,0.3); }
@@ -593,18 +599,32 @@ const PL_GROUPS = [
   ['cold', 'Cold', l => l.status === 'cold'],
   ['contacted', 'Contacted', l => l.status === 'contacted'],
   ['warm', 'Warm', l => l.status === 'warm'],
+  ['reopened', 'Reopened', l => l.status === 'reopened'],
   ['hot', 'Hot', l => l.status === 'hot_opportunity' || l.status === 'call_ready'],
   ['won', 'Won', l => l.status === 'won'],
   ['closed', 'Closed', l => ['lost','unsubscribed','bounced','do_not_contact'].includes(l.status)]
 ];
-const PL_STATUS_LABEL = { cold:'Cold', contacted:'Contacted', warm:'Warm', call_ready:'Call ready', hot_opportunity:'Hot', won:'Won', lost:'Lost', unsubscribed:'Unsubscribed', bounced:'Bounced', do_not_contact:'Do not contact' };
-const PL_EVENT_LABEL = { lead_created:'Added', lead_updated:'Updated', status_change:'Stage change', email_sent:'Email sent', reply_received:'Reply received', call_scheduled:'Call scheduled', note:'Note', draft_ready:'Draft ready', decision:'Your decision', decision_ack:'Apollo confirmed' };
+const PL_STATUS_LABEL = { cold:'Cold', contacted:'Contacted', warm:'Warm', reopened:'Reopened', call_ready:'Call ready', hot_opportunity:'Hot', won:'Won', lost:'Lost', unsubscribed:'Unsubscribed', bounced:'Bounced', do_not_contact:'Do not contact' };
+const PL_EVENT_LABEL = { lead_created:'Added', lead_updated:'Updated', lead_reopened:'Reopened with new email', status_change:'Stage change', email_sent:'Email sent', reply_received:'Reply received', call_scheduled:'Call scheduled', note:'Note', draft_ready:'Draft ready', decision:'Your decision', decision_ack:'Apollo confirmed' };
 const PL_DECISIONS = [
   ['approve_outreach','Approve outreach',false], ['send_followup','Send follow-up',false], ['hold','Hold',false], ['skip','Skip',false],
   ['mark_call_ready','Mark call ready',false], ['mark_won','Mark won',false], ['mark_lost','Mark lost',true], ['do_not_contact','Do not contact',true]
 ];
 function plEsc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function plBadgeClass(s) { return s === 'hot_opportunity' || s === 'call_ready' ? 'hot' : (['lost','unsubscribed','bounced','do_not_contact'].includes(s) ? 'closed' : s); }
+function plReopenForm(id) { const f = document.getElementById('plro-' + id); if (f) f.classList.toggle('show'); }
+async function plReopen(id, btn) {
+  const g = k => (document.getElementById('plro-' + k + '-' + id) || {}).value || '';
+  const newEmail = g('email').trim(), reason = g('reason').trim(), sourceUrl = g('src').trim();
+  if (!newEmail || !reason || !/^https?:\/\//i.test(sourceUrl)) { alert('New email, a reason, and the http(s) page where the email is published are all required.'); return; }
+  btn.classList.add('dis');
+  try {
+    const r = await fetch(PL_BASE + "pipeline-reopen", { method: "POST", headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY }, body: JSON.stringify({ leadId: id, newEmail: newEmail, reason: reason, sourceUrl: sourceUrl }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || ('Server returned ' + r.status));
+    await loadPipeline();
+  } catch (e) { btn.classList.remove('dis'); alert('Couldn\'t reopen: ' + e.message); }
+}
 function plWhen(iso) { if (!iso) return ''; return new Date(iso).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }); }
 function plUrl(u) { return /^https?:\/\//i.test(u || '') ? plEsc(u) : ''; }
 
@@ -758,7 +778,7 @@ function renderPipeline() {
       '<div class="pl-row" onclick="plToggle(' + l.id + ')"><div>' +
         '<div class="pl-name">' + plEsc(l.practice_name) + '</div>' +
         '<div class="pl-meta">' + plEsc(l.city) + ' · ' + plEsc(l.external_id) + ' · ' + plEsc(ev) + '</div>' +
-        '<div class="pl-tags">' + (l.needs_decision ? '<span class="pl-tag">Needs your decision</span>' : '') +
+        '<div class="pl-tags">' + (l.needs_decision ? '<span class="pl-tag">Needs your decision</span>' : '') + (l.was_reopened ? '<span class="pl-tag reopen">Reopened</span>' : '') +
           (l.pending_decision ? '<span class="pl-tag pend">Waiting on Apollo: ' + plEsc(l.pending_decision.decision.replace(/_/g, ' ')) + (l.pending_decision.ack === 'failed' ? ' (failed)' : '') + '</span>' : '') + '</div>' +
       '</div><div class="pl-badge ' + plBadgeClass(l.status) + '">' + plEsc(PL_STATUS_LABEL[l.status] || l.status) + '</div></div>' +
       '<div class="pl-detail" id="pld-' + l.id + '">' + (plOpen === l.id ? '<div class="pl-empty">Loading…</div>' : '') + '</div></div>';
@@ -813,6 +833,8 @@ async function plLoadDetail(id) {
     if (plUrl(lead.contact_form_url)) info.push('<a href="' + plUrl(lead.contact_form_url) + '" target="_blank" rel="noopener">Contact form</a>');
     if (lead.address) info.push(plEsc(lead.address));
     if (lead.notes) info.push('Notes: ' + plEsc(lead.notes));
+    const blocked = (l.blocked_emails || []);
+    if (blocked.length) info.push('<span class="pl-blocked">Blocked (bounced): ' + blocked.map(plEsc).join(', ') + '</span>');
     const drafts = (d.events || []).filter(e => e.event_type === 'draft_ready');
     const latestDraft = drafts.reduce((m, e) => (!m || e.id > m.id) ? e : m, null);
     plDraftIds[id] = latestDraft ? latestDraft.id : null;
@@ -837,9 +859,16 @@ async function plLoadDetail(id) {
         (txt ? '<div class="pl-ev-txt">' + plEsc(txt) + '</div>' : '') +
         (e.reply_text_untrusted ? '<div class="pl-ev-reply">' + plEsc(String(e.reply_text_untrusted).slice(0, 800)) + '</div>' : '') + '</div>';
     }).join('');
+    const reopenHtml = (lead.status || l.status) === 'bounced'
+      ? '<div class="pl-reopen"><div class="pl-act" onclick="plReopenForm(' + id + ')">Reopen with new email</div>' +
+        '<div class="pl-reopen-form" id="plro-' + id + '"><input class="pl-note" id="plro-email-' + id + '" type="email" maxlength="254" placeholder="New email address">' +
+        '<input class="pl-note" id="plro-reason-' + id + '" maxlength="500" placeholder="Reason (e.g. new address on contact page)">' +
+        '<input class="pl-note" id="plro-src-' + id + '" maxlength="500" placeholder="https:// page where the new email is published">' +
+        '<div class="pl-actions" style="margin-top:8px"><div class="pl-act" onclick="plReopen(' + id + ',this)">Confirm reopen</div></div></div></div>'
+      : '';
     box.innerHTML =
       '<div class="pl-info">' + (info.length ? info.join('<br>') : 'No contact details on file yet.') + '</div>' +
-      draftHtml +
+      draftHtml + reopenHtml +
       '<div class="pl-sec">Your decision</div>' +
       '<div class="pl-actions">' + PL_DECISIONS.map(x => '<div class="pl-act' + (x[2] ? ' danger' : '') + '" onclick="plDecide(' + id + ',\'' + x[0] + '\',this)">' + x[1] + '</div>').join('') + '</div>' +
       '<input class="pl-note" id="pln-' + id + '" maxlength="280" placeholder="Optional note for Apollo">' +
