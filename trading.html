@@ -69,6 +69,28 @@
   .tr-card { min-width:0; }
   .tr-tbl td.tr-reason { white-space:normal; min-width:160px; text-align:left; }
   .tr-stat-val { font-size:18px; }
+
+  .tr-tbl td.sticky, .tr-tbl th.sticky { position:sticky; left:0; background:var(--card); z-index:1; }
+  .tr-tbl tr.pl-row { cursor:pointer; }
+  .tr-tbl tr.pl-row.sel td { background:var(--card-raised); }
+  .tr-tbl tr.pl-row.sel td.sticky { background:var(--card-raised); }
+  .pl-name { display:flex; align-items:center; gap:7px; white-space:normal; width:118px; line-height:1.25; }
+  .pl-name > span.nm { flex:1 1 auto; min-width:0; }
+  .tr-badge.pl { margin-left:0; }
+  .pl-dot { width:9px; height:9px; border-radius:50%; flex:0 0 9px; }
+  .pl-dot.bench { background:transparent !important; border:2px dashed var(--gray); }
+  .pl-bench { font-size:9px; letter-spacing:0.14em; color:var(--gray); border:1px solid var(--gray-dim); border-radius:4px; padding:1px 5px; }
+  .pl-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+  .pl-legend span { display:inline-flex; align-items:center; gap:6px; }
+  .pl-legend i { display:inline-block; width:16px; height:0; border-top:3px solid; }
+  .pl-legend i.dash { border-top-style:dashed; }
+  .pl-tabs { display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; margin-bottom:14px; }
+  .pl-tab { flex:0 0 auto; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.04em; color:var(--gray); background:transparent; border:1px solid var(--border); border-radius:999px; padding:6px 12px; cursor:pointer; white-space:nowrap; }
+  .pl-tab.sel { color:var(--white); border-color:var(--teal); }
+  .pl-desc { font-family:'DM Sans',sans-serif; font-size:13px; color:var(--gray); line-height:1.5; margin-bottom:14px; }
+  .pl-stats4 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+  .pl-sub { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.16em; color:var(--gold-dim); text-transform:uppercase; margin:18px 0 8px; }
+  .pl-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:14px; }
 </style>
 </head>
 <body>
@@ -83,6 +105,9 @@
   <div class="tr-bar"><div class="tr-updated" id="trUpdated">Loading…</div><button class="tr-refresh" id="trRefresh" type="button">Refresh</button></div>
   <div class="tr-stale" id="trStale"></div>
   <div class="tr-grid">
+    <div class="tr-card wide" id="trBoard" style="display:none"></div>
+    <div class="tr-card wide" id="trPlanChart" style="display:none"></div>
+    <div class="tr-card wide" id="trDrill" style="display:none"></div>
     <div class="tr-card wide" id="trAcct"><div class="tr-label">Virtual balance</div><div class="tr-empty">Loading…</div></div>
     <div class="tr-card wide" id="trPos"><div class="tr-label">Open positions</div><div class="tr-empty">Loading…</div></div>
     <div class="tr-card wide" id="trTrades"><div class="tr-label">Trade log</div><div class="tr-empty">Loading…</div></div>
@@ -204,14 +229,111 @@ function renderStale(last) {
   else el.classList.remove("show");
 }
 
+
+// ---------- multi-plan view (tyche-multi-plan-v1) ----------
+const PLAN_COLORS = ["#2db3a0", "#c9a84c", "#6ea8fe", "#c78ae0", "#e0983a", "#7fd37f", "#f08fb0", "#5fd0e0"];
+let PLANS = [];
+let SEL_PLAN = null;
+let DAY_TRADES = null;
+const planColor = {};
+function assignColors(plans) {
+  const ids = plans.filter((p) => !p.is_benchmark).map((p) => p.plan_id).sort();
+  ids.forEach((id, i) => { planColor[id] = PLAN_COLORS[i % PLAN_COLORS.length]; });
+  plans.filter((p) => p.is_benchmark).forEach((p) => { planColor[p.plan_id] = "#8a8a8a"; });
+}
+const dot = (p) => '<span class="pl-dot' + (p.is_benchmark ? " bench" : "") + '" style="background:' + planColor[p.plan_id] + '"></span>';
+const shortName = (p) => String(p.name || p.plan_id).replace(/\s*\(benchmark\)\s*/i, "");
+const winFmt = (v) => { const n = num(v); return n == null ? "—" : Math.round(n) + "%"; };
+
+function renderBoard(plans) {
+  const el = $("trBoard");
+  const bench = plans.find((p) => p.is_benchmark);
+  const bt = bench ? num(bench.total_pl_pct) : null;
+  const rows = plans.slice().sort((a, b) => (num(b.total_pl_pct) == null ? -1e9 : num(b.total_pl_pct)) - (num(a.total_pl_pct) == null ? -1e9 : num(a.total_pl_pct)));
+  const body = rows.map((p) => {
+    const t = num(p.total_pl_pct);
+    const vs = (!p.is_benchmark && bt != null && t != null) ? t - bt : null;
+    return '<tr class="pl-row' + (p.plan_id === SEL_PLAN ? " sel" : "") + '" data-plan="' + esc(p.plan_id) + '"><td class="sticky"><span class="pl-name">' + dot(p) + '<span class="nm">' + esc(shortName(p)) + (p.is_benchmark ? '<br><span class="pl-bench">BENCHMARK</span>' : "") + '</span></span></td>' +
+      '<td>' + usd(p.virtual_balance) + '</td><td class="' + cls(t) + '">' + pn(t, true) + '</td><td class="' + (vs == null ? "" : cls(vs)) + '">' + (p.is_benchmark ? "—" : pn(vs, true)) + '</td>' +
+      '<td>' + pn(p.max_drawdown_pct) + '</td><td>' + winFmt(p.win_rate_pct) + '</td><td>' + (p.trades_closed == null ? "—" : esc(p.trades_closed)) + '</td><td>' + ((p.open_positions || []).length) + '</td></tr>';
+  }).join("");
+  el.innerHTML = lbl("Plan leaderboard") + '<div class="tr-scroll"><table class="tr-tbl"><thead><tr><th class="sticky">Plan</th><th>Balance</th><th>Total</th><th>vs SPY</th><th>Max DD</th><th>Win rate</th><th>Closed</th><th>Open</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
+    '<div class="pl-note">Sorted by total return. Swipe the table for win rate, closed trades and open positions. Tap a plan to open it below.</div>' +
+    '<div class="pl-note">Day trades (5 days): ' + (DAY_TRADES == null ? "—" : esc(DAY_TRADES)) + ' of 3 (shared across all plans)</div>';
+  el.querySelectorAll("tr.pl-row").forEach((tr) => tr.addEventListener("click", () => { SEL_PLAN = tr.getAttribute("data-plan"); renderBoard(PLANS); renderDrill(PLANS); $("trDrill").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+}
+
+function renderPlanChart(plans) {
+  const el = $("trPlanChart");
+  const series = plans.map((p) => ({ p, pts: (p.history || []).map((x) => ({ t: Date.parse(x.ts), e: num(x.balance) })).filter((x) => x.e != null && !isNaN(x.t)) })).filter((s) => s.pts.length);
+  const head = lbl("Balance over time · all plans");
+  const any = series.some((s) => s.pts.length >= 2);
+  if (!any) { el.innerHTML = head + empty("Not enough history yet. Lines appear after a few snapshots."); return; }
+  const W = 600, H = 220, P = 10;
+  let t0 = Infinity, t1 = -Infinity, lo = 100, hi = 100;
+  series.forEach((s) => s.pts.forEach((q) => { t0 = Math.min(t0, q.t); t1 = Math.max(t1, q.t); lo = Math.min(lo, q.e); hi = Math.max(hi, q.e); }));
+  const padv = Math.max((hi - lo) * 0.08, 0.05); lo -= padv; hi += padv;
+  const x = (t) => P + ((t - t0) / (t1 - t0 || 1)) * (W - 2 * P);
+  const y = (e) => H - P - ((e - lo) / (hi - lo)) * (H - 2 * P);
+  const base = '<line x1="' + P + '" x2="' + (W - P) + '" y1="' + y(100).toFixed(1) + '" y2="' + y(100).toFixed(1) + '" stroke="#444" stroke-width="1" stroke-dasharray="2 4"/>';
+  const lines = series.slice().sort((a, b) => (a.p.is_benchmark ? 0 : 1) - (b.p.is_benchmark ? 0 : 1)).map((s) => {
+    if (s.pts.length < 2) { const q = s.pts[0]; return '<circle cx="' + x(q.t).toFixed(1) + '" cy="' + y(q.e).toFixed(1) + '" r="3.5" fill="' + planColor[s.p.plan_id] + '"/>'; }
+    const d = s.pts.map((q, i) => (i ? "L" : "M") + x(q.t).toFixed(1) + " " + y(q.e).toFixed(1)).join(" ");
+    return '<path d="' + d + '" fill="none" stroke="' + planColor[s.p.plan_id] + '" stroke-width="' + (s.p.is_benchmark ? 2 : 2.5) + '"' + (s.p.is_benchmark ? ' stroke-dasharray="6 5"' : "") + ' stroke-linejoin="round" stroke-linecap="round"/>';
+  }).join("");
+  const legend = plans.map((p) => '<span><i class="' + (p.is_benchmark ? "dash" : "") + '" style="border-top-color:' + planColor[p.plan_id] + '"></i>' + esc(p.name) + '</span>').join("");
+  el.innerHTML = head + '<div class="tr-chart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Balance over time for each plan, starting at $100">' + base + lines + '</svg></div>' +
+    '<div class="tr-row3" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px"><div class="tr-stat-label">Low ' + usd(lo + padv) + '</div><div class="tr-stat-label" style="text-align:center">Dotted line = $100 start</div><div class="tr-stat-label" style="text-align:right">High ' + usd(hi - padv) + '</div></div>' +
+    '<div class="pl-legend">' + legend + '</div>';
+}
+
+function renderDrill(plans) {
+  const el = $("trDrill");
+  const p = plans.find((x) => x.plan_id === SEL_PLAN) || plans[0];
+  if (!p) { el.innerHTML = ""; return; }
+  const tabs = plans.map((q) => '<button type="button" class="pl-tab' + (q.plan_id === p.plan_id ? " sel" : "") + '" data-plan="' + esc(q.plan_id) + '">' + esc(shortName(q)) + (q.is_benchmark ? " · bench" : "") + '</button>').join("");
+  const stat = (l, v, c, s) => '<div><div class="tr-stat-label">' + l + '</div><div class="tr-stat-val on ' + (c || "") + '" style="font-size:22px">' + v + '</div>' + (s ? '<div class="tr-stat-label ' + (c || "") + '">' + s + '</div>' : "") + '</div>';
+  const pos = (p.open_positions || []);
+  const posHtml = pos.length ? '<div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Current</th><th>Notional</th><th>Unrealized</th><th>Stop</th><th>Target</th></tr></thead><tbody>' +
+    pos.map((q) => '<tr><td>' + esc(q.symbol) + '</td><td>' + qtyFmt(q.qty) + '</td><td>' + usd(q.entry) + '</td><td>' + usd(q.current) + '</td><td>' + usd(q.notional) + '</td><td class="' + cls(q.unrealized_pl) + '">' + sgn(q.unrealized_pl) + '</td><td>' + usd(q.stop) + '</td><td>' + usd(q.target) + '</td></tr>').join("") + '</tbody></table></div>' : empty("No open positions.");
+  const trs = (p.trades || []);
+  const trHtml = trs.length ? '<div class="tr-scroll"><table class="tr-tbl"><thead><tr><th>Date</th><th>Symbol</th><th>Setup</th><th>Side</th><th>Entry</th><th>Exit</th><th>Notional</th><th>Result</th><th>Reason</th></tr></thead><tbody>' +
+    trs.map((t) => '<tr><td>' + esc(t.trade_date || "—") + '</td><td>' + esc(t.symbol) + '</td><td>' + esc(t.setup || "—") + '</td><td>' + esc(String(t.side || "").toUpperCase()) + '</td><td>' + usd(t.entry) + '</td><td>' + usd(t.exit) + '</td><td>' + usd(t.notional) +
+      '</td><td class="' + cls(t.result_usd) + '">' + (t.status === "open" || t.result_usd == null ? "open" : sgn(t.result_usd) + " (" + pn(t.result_pct, true) + ")") + '</td><td class="tr-reason">' + esc(t.reason || "") + '</td></tr>').join("") + '</tbody></table></div>' : empty("No trades yet.");
+  el.innerHTML = lbl("Plan detail") + '<div class="pl-tabs">' + tabs + '</div>' +
+    '<div class="pl-desc">' + dot(p) + ' ' + esc(p.description || "") + (p.is_benchmark ? " (benchmark)" : "") + '</div>' +
+    '<div class="pl-stats4">' + stat("Balance", usd(p.virtual_balance), "", "of " + usd(p.starting_budget) + " start") + stat("Today", sgn(p.day_pl), cls(p.day_pl), pn(p.day_pl_pct, true)) +
+    stat("Total P&amp;L", sgn(p.total_pl != null ? p.total_pl : (num(p.virtual_balance) != null && num(p.starting_budget) != null ? num(p.virtual_balance) - num(p.starting_budget) : null)), cls(p.total_pl_pct), pn(p.total_pl_pct, true)) +
+    stat("Max drawdown", pn(p.max_drawdown_pct), "", "Cash " + usd(p.cash)) + '</div>' +
+    '<div class="pl-sub">Open positions</div>' + posHtml + '<div class="pl-sub">Trade history</div>' + trHtml;
+  el.querySelectorAll(".pl-tab").forEach((b) => b.addEventListener("click", () => { SEL_PLAN = b.getAttribute("data-plan"); renderBoard(PLANS); renderDrill(PLANS); }));
+}
+
+function renderPlans(d) {
+  const plans = d.plans || [];
+  const multi = plans.length > 0;
+  ["trBoard", "trPlanChart", "trDrill"].forEach((id) => { $(id).style.display = multi ? "" : "none"; });
+  ["trAcct", "trPos", "trTrades", "trCurve", "trScore"].forEach((id) => { $(id).style.display = multi ? "none" : ""; });
+  document.querySelector(".tr-badge").textContent = multi ? "PAPER · " + plans.length + " × $100" : "PAPER · VIRTUAL $100";
+  document.querySelector(".page-sub").firstChild.textContent = multi ? "Tyche virtual budgets · display only" : "Tyche virtual budget · display only";
+  if (!multi) return false;
+  PLANS = plans; DAY_TRADES = d.plans_day_trades_5d; assignColors(plans);
+  if (!SEL_PLAN || !plans.some((p) => p.plan_id === SEL_PLAN)) SEL_PLAN = plans.slice().sort((a, b) => (num(b.total_pl_pct) == null ? -1e9 : num(b.total_pl_pct)) - (num(a.total_pl_pct) == null ? -1e9 : num(a.total_pl_pct)))[0].plan_id;
+  renderBoard(plans); renderPlanChart(plans); renderDrill(plans);
+  return true;
+}
+
 async function loadTrading() {
   try {
     const r = await fetch(TR_URL, { method: "GET", headers: { "X-Api-Key": API_KEY } });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
-    $("trUpdated").textContent = d.last_snapshot_at ? "Last updated " + etTime(d.last_snapshot_at) : "No snapshot from Tyche yet";
-    renderStale(d.last_snapshot_at);
-    renderAccount(d.virtual); renderPositions(d.positions); renderTrades(d.trades); renderCurve(d.balance_history); renderScore(d.scorecard); renderFills(d.alpaca_fills);
+    const multi = renderPlans(d);
+    const last = multi ? (d.plans_last_snapshot_at || d.last_snapshot_at) : d.last_snapshot_at;
+    $("trUpdated").textContent = last ? "Last updated " + etTime(last) : "No snapshot from Tyche yet";
+    renderStale(last);
+    if (!multi) { renderAccount(d.virtual); renderPositions(d.positions); renderTrades(d.trades); renderCurve(d.balance_history); renderScore(d.scorecard); }
+    renderFills(d.alpaca_fills);
   } catch (e) {
     $("trUpdated").textContent = "Couldn't load trading data.";
   }
