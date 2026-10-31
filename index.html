@@ -1230,14 +1230,24 @@ async function handleChatSend() {
   conversationHistory.push({ role: 'user', content: text });
   saveConversationHistory();
 
+  const ctl = new AbortController();
+  const killTimer = setTimeout(() => ctl.abort(), 75000);
   try {
+    // Send only the recent turns (older ones slow every step and add nothing); must start on a user message
+    const recent = conversationHistory.slice(-16);
+    while (recent.length && recent[0].role !== 'user') recent.shift();
     const response = await fetch(CHAT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Api-Key": API_KEY },
-      body: JSON.stringify({ messages: conversationHistory })
+      body: JSON.stringify({ messages: recent }),
+      signal: ctl.signal
     });
+    clearTimeout(killTimer);
     const data = await response.json();
     hideChatTyping();
+    if (!data.reply) {
+      addChatMessage('assistant', "Talos didn't send a reply. That action may not have happened. Check before you retry so nothing gets entered twice.");
+    }
     if (data.reply) {
       addChatMessage('assistant', data.reply);
       conversationHistory.push({ role: 'assistant', content: data.reply });
@@ -1248,8 +1258,11 @@ async function handleChatSend() {
     const changedData = data.clinic || data.client || data.session || data.touchpoint || data.deleted || data.removed || data.note;
     if (changedData) setTimeout(loadDashboard, 500);
   } catch (err) {
+    clearTimeout(killTimer);
     hideChatTyping();
-    addChatMessage('assistant', "Couldn't reach Talos: " + err.message);
+    addChatMessage('assistant', err.name === 'AbortError'
+      ? "Talos took more than 75 seconds and I stopped waiting. It may still have finished. Check before you retry so nothing gets entered twice."
+      : "Couldn't reach Talos: " + err.message);
   }
 
   chatSendEl.disabled = false;
