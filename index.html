@@ -1243,7 +1243,9 @@ async function handleChatSend() {
       signal: ctl.signal
     });
     clearTimeout(killTimer);
-    const data = await response.json();
+    const rawBody = await response.text();
+    let data = {};
+    try { data = rawBody ? JSON.parse(rawBody) : {}; } catch (e) { data = {}; }
     hideChatTyping();
     if (!data.reply) {
       addChatMessage('assistant', "Talos didn't send a reply. That action may not have happened. Check before you retry so nothing gets entered twice.");
