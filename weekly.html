@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Talos — Weekly Review</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black:#0a0a0a; --card:#181818; --card-raised:#1e1e1e; --border:#2a2a2a;
+    --gold:#c9a84c; --gold-dim:#8a6f2e; --grape:#9b6bd6; --grape-dim:#6b4a9e;
+    --white:#f0ece4; --gray:#8a8a8a; --gray-dim:#444; --amber:#e0983a; --green:#6fcf8f; --red:#c26b6b;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; padding-bottom:calc(96px + env(safe-area-inset-bottom,0px)); }
+  .bottom-nav { position:fixed; left:0; right:0; bottom:0; display:flex; border-top:1px solid var(--border); background:#0e0e0e; padding:10px 6px calc(16px + env(safe-area-inset-bottom,0px)); z-index:50; }
+  .bottom-nav a { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; text-decoration:none; }
+  .bottom-nav a svg circle { fill:var(--gray); }
+  .bottom-nav a.active svg circle { fill:var(--grape); }
+  .bottom-nav a span { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.04em; color:var(--gray); }
+  .bottom-nav a.active span { color:var(--grape); }
+  .fab { position:fixed; right:18px; bottom:calc(96px + env(safe-area-inset-bottom,0px)); width:52px; height:52px; border-radius:50%; background:var(--gold); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(201,168,76,0.4); z-index:51; text-decoration:none; }
+  header { padding:28px 20px 16px; border-bottom:1px solid var(--border); }
+  .eyebrow { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.3em; color:var(--grape); text-transform:uppercase; margin-bottom:4px; }
+  .page-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:0.03em; }
+  .page-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:4px; }
+  .weekbar { display:flex; align-items:center; gap:8px; margin-top:14px; }
+  .weekbar select { flex:1; min-width:0; background:#0c0c0c; color:var(--white); border:1px solid var(--border); border-radius:8px; padding:10px; font-family:'DM Mono',monospace; font-size:12px; }
+  .wk-btn { font-family:'DM Mono',monospace; font-size:14px; border:1px solid var(--border); border-radius:8px; padding:9px 14px; color:var(--gray); cursor:pointer; user-select:none; }
+  .wk-btn.dis { opacity:0.3; pointer-events:none; }
+  main { padding:0 20px; max-width:640px; margin:0 auto; }
+  .sec { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; color:var(--gray); text-transform:uppercase; margin:22px 0 8px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:18px; margin-top:12px; overflow:hidden; }
+  .card.hermes { border-color:var(--grape-dim); }
+  .card-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px; cursor:pointer; }
+  .card.hermes .card-head { cursor:default; }
+  .card-name { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.04em; }
+  .card-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:2px; }
+  .chev { color:var(--gray); transition:transform .2s; font-size:12px; }
+  .card.open .chev { transform:rotate(90deg); }
+  .card-body { display:none; padding:0 16px 16px; }
+  .card.open .card-body, .card.hermes .card-body { display:block; }
+  .badge { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; border-radius:4px; padding:3px 7px; border:1px solid var(--border); color:var(--gray); white-space:nowrap; }
+  .badge.wait { color:var(--amber); border-color:#6b4a1a; }
+  .badge.ok { color:var(--green); border-color:#2d6644; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; margin-bottom:12px; }
+  .tile { background:var(--card-raised); border:1px solid var(--border); border-radius:10px; padding:10px; }
+  .tile-v { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.03em; color:var(--gold); word-break:break-word; }
+  .tile-l { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:2px; word-break:break-word; }
+  .md { font-size:14px; line-height:1.55; color:#d8d4cc; }
+  .md p { margin:0 0 10px; }
+  .md ul { margin:0 0 10px 18px; }
+  .md h4 { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); margin:12px 0 6px; }
+  .links { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .links a { font-family:'DM Mono',monospace; font-size:11px; color:var(--grape); border:1px solid var(--grape-dim); border-radius:6px; padding:6px 9px; text-decoration:none; }
+  .need { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; margin-top:8px; }
+  .need-top { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+  .need-txt { font-size:14px; line-height:1.4; }
+  .need-hint { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:6px; line-height:1.4; }
+  .need-hint a { color:var(--grape); }
+  .need-act { display:flex; gap:8px; margin-top:10px; }
+  .btn { font-family:'DM Mono',monospace; font-size:12px; border:1px solid var(--grape-dim); color:var(--grape); border-radius:8px; padding:10px 14px; cursor:pointer; user-select:none; }
+  .btn.done { border-color:#2d6644; color:var(--green); }
+  .btn.dis { opacity:0.4; pointer-events:none; }
+  .handled { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:8px; line-height:1.6; }
+  .empty { font-family:'DM Mono',monospace; font-size:12px; color:var(--gray); padding:14px 0; }
+  .error-note { font-family:'DM Mono',monospace; font-size:12px; color:var(--red); padding:14px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Talos</div>
+  <div class="page-title">Weekly Review</div>
+  <div class="page-sub" id="wkSub">Loading…</div>
+  <div class="weekbar">
+    <div class="wk-btn" id="wkPrev" onclick="stepWeek(1)">‹</div>
+    <select id="wkSel" onchange="loadWeek(this.value)"></select>
+    <div class="wk-btn" id="wkNext" onclick="stepWeek(-1)">›</div>
+  </div>
+</header>
+<main id="root"><div class="empty">Loading…</div></main>
+
+<a class="fab" href="index.html" aria-label="Tell Talos">
+  <svg width="24" height="24" viewBox="0 0 64 64"><path d="M6 32 Q16 23 20 32 Q22 37 24 10 L27 54 Q29 40 34 32 Q42 24 58 32" stroke="#0a0a0a" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</a>
+
+<nav class="bottom-nav">
+  <a href="index.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Home</span></a>
+  <a href="clients.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clients</span></a>
+  <a href="clinics.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clinics</span></a>
+  <a href="trading.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Trading</span></a>
+  <a href="nido.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Nido</span></a>
+  <a href="weekly.html" class="active"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Weekly</span></a>
+</nav>
+
+<script>
+const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+const BASE = "https://affable-chachalaca.pikapod.net/webhook/";
+const BOTS = [['hermes','Hermes','Coordinator'],['pheme','Pheme','Social media'],['endeavour','Endeavour','YouTube'],['apollo','Apollo','Replete RX email']];
+const BOT_LABEL = { hermes:'Hermes', pheme:'Pheme', endeavour:'Endeavour', apollo:'Apollo' };
+let DATA = null, OPEN = {};
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function inline(s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>'); }
+// Tiny markdown: everything is escaped first, then only headings, bullets, paragraphs, bold and code are re-introduced. No links, no HTML.
+function md(src) {
+  const lines = String(src || '').replace(/\r/g, '').split('\n'); let out = '', list = false, para = [];
+  const flush = () => { if (para.length) { out += '<p>' + para.map(inline).join('<br>') + '</p>'; para = []; } };
+  const closeList = () => { if (list) { out += '</ul>'; list = false; } };
+  for (const raw of lines) {
+    const l = raw.trimEnd();
+    if (!l.trim()) { flush(); closeList(); continue; }
+    const h = l.match(/^#{1,4}\s+(.*)$/);
+    if (h) { flush(); closeList(); out += '<h4>' + inline(h[1]) + '</h4>'; continue; }
+    const b = l.match(/^\s*[-*•]\s+(.*)$/);
+    if (b) { flush(); if (!list) { out += '<ul>'; list = true; } out += '<li>' + inline(b[1]) + '</li>'; continue; }
+    closeList(); para.push(l);
+  }
+  flush(); closeList(); return out;
+}
+function fmtWeek(iso) { const d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+function safeUrl(u) { return /^https?:\/\//i.test(u || '') ? esc(u) : ''; }
+
+async function api(path, opts) {
+  const r = await fetch(BASE + path, Object.assign({ headers: { 'X-Api-Key': API_KEY, 'Content-Type': 'application/json' } }, opts || {}));
+  const txt = await r.text(); let d = {}; try { d = txt ? JSON.parse(txt) : {}; } catch (e) {}
+  if (!r.ok || d.ok === false) throw new Error(d.error || d.message || ('Server returned ' + r.status));
+  return d;
+}
+async function loadWeek(week) {
+  const root = document.getElementById('root');
+  try {
+    DATA = await api('weekly-review' + (week ? '?week=' + encodeURIComponent(week) : ''));
+    render();
+  } catch (e) { root.innerHTML = '<div class="error-note">Couldn\'t load: ' + esc(e.message) + '</div>'; }
+}
+function stepWeek(dir) { // dir 1 = older, -1 = newer (weeks list is newest first)
+  if (!DATA) return; const i = DATA.weeks.indexOf(DATA.week_of); const n = DATA.weeks[i + dir]; if (n) loadWeek(n);
+}
+function tiles(m) {
+  const keys = Object.keys(m || {}); if (!keys.length) return '';
+  return '<div class="tiles">' + keys.map(k => '<div class="tile"><div class="tile-v">' + esc(m[k]) + '</div><div class="tile-l">' + esc(k) + '</div></div>').join('') + '</div>';
+}
+function body(r) {
+  const links = (r.links || []).filter(l => safeUrl(l.url));
+  return tiles(r.metrics) + '<div class="md">' + md(r.summary) + '</div>' +
+    (links.length ? '<div class="links">' + links.map(l => '<a href="' + safeUrl(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>').join('') + '</div>' : '');
+}
+function missing(bot) {
+  return DATA.deadline_passed ? '<span class="badge wait">Not in yet</span>' : '<span class="badge">Due 12:00 PM ET</span>';
+}
+function render() {
+  document.getElementById('wkSub').textContent = 'Week of ' + fmtWeek(DATA.week_of) + (DATA.week_of === DATA.current_week ? ' · this week' : '');
+  const sel = document.getElementById('wkSel');
+  sel.innerHTML = DATA.weeks.map(w => '<option value="' + esc(w) + '"' + (w === DATA.week_of ? ' selected' : '') + '>' + esc(fmtWeek(w)) + (w === DATA.current_week ? ' (this week)' : '') + '</option>').join('');
+  const i = DATA.weeks.indexOf(DATA.week_of);
+  document.getElementById('wkPrev').classList.toggle('dis', i >= DATA.weeks.length - 1);
+  document.getElementById('wkNext').classList.toggle('dis', i <= 0);
+  const by = {}; (DATA.reports || []).forEach(r => { by[r.source] = r; });
+
+  let html = '';
+  const h = by.hermes;
+  html += '<div class="sec">Summary</div><div class="card hermes"><div class="card-head"><div><div class="card-name">Hermes</div><div class="card-sub">' + (h ? esc(h.title) : 'Coordinator') + '</div></div>' + (h ? '<span class="badge ok">In</span>' : missing()) + '</div>' +
+    '<div class="card-body">' + (h ? body(h) : '<div class="empty">Hermes hasn\'t posted this week\'s summary.</div>') + '</div></div>';
+
+  const items = [];
+  (DATA.reports || []).forEach(r => (r.action_items || []).forEach(a => items.push(Object.assign({ source: r.source }, a))));
+  const open = items.filter(a => !a.decision), handled = items.filter(a => a.decision);
+  html += '<div class="sec">Needs you (' + open.length + ')</div>';
+  if (!items.length) html += '<div class="empty">No action items this week.</div>';
+  else if (!open.length) html += '<div class="empty">All handled.</div>';
+  open.forEach(a => {
+    const k = a.source + '|' + a.id;
+    html += '<div class="need" id="n-' + esc(k) + '"><div class="need-top"><span class="badge">' + esc(BOT_LABEL[a.source] || a.source) + '</span><span class="badge ' + (a.kind === 'approve' ? 'wait' : '') + '">' + esc(a.kind) + '</span></div>' +
+      '<div class="need-txt">' + esc(a.text) + '</div>' +
+      (a.kind === 'approve' ? '<div class="need-hint">Done here is only a note. Approve on the real screen' + (a.source === 'apollo' ? ': <a href="clinics.html">Clinics</a>' : '') + '.</div>' : '') +
+      '<div class="need-act"><div class="btn done" data-s="' + esc(a.source) + '" data-i="' + esc(a.id) + '" data-d="done" onclick="decide(this)">Done</div><div class="btn" data-s="' + esc(a.source) + '" data-i="' + esc(a.id) + '" data-d="dismissed" onclick="decide(this)">Dismiss</div></div></div>';
+  });
+  if (handled.length) html += '<div class="handled">Handled: ' + handled.map(a => esc(BOT_LABEL[a.source] || a.source) + ' · ' + esc(a.text.length > 50 ? a.text.slice(0, 50) + '…' : a.text) + ' (' + esc(a.decision) + ')').join('<br>') + '</div>';
+
+  html += '<div class="sec">Reports</div>';
+  BOTS.filter(b => b[0] !== 'hermes').forEach(b => {
+    const r = by[b[0]]; const isOpen = !!OPEN[b[0]];
+    html += '<div class="card' + (isOpen ? ' open' : '') + '" id="c-' + b[0] + '"><div class="card-head" onclick="toggle(\'' + b[0] + '\')"><div><div class="card-name">' + esc(b[1]) + '</div><div class="card-sub">' + (r ? esc(r.title) : esc(b[2])) + '</div></div><div style="display:flex;align-items:center;gap:10px">' + (r ? '<span class="badge ok">In</span>' : missing()) + '<span class="chev">▶</span></div></div>' +
+      '<div class="card-body">' + (r ? body(r) : '<div class="empty">' + (DATA.deadline_passed ? 'Not in yet.' : 'Expected by 12:00 PM ET Sunday.') + '</div>') + '</div></div>';
+  });
+  document.getElementById('root').innerHTML = html;
+}
+function toggle(b) { OPEN[b] = !OPEN[b]; const el = document.getElementById('c-' + b); if (el) el.classList.toggle('open', OPEN[b]); }
+async function decide(btn) {
+  const row = btn.closest('.need'); row.querySelectorAll('.btn').forEach(x => x.classList.add('dis'));
+  try {
+    await api('weekly-decide', { method: 'POST', body: JSON.stringify({ source: btn.dataset.s, weekOf: DATA.week_of, itemId: btn.dataset.i, decision: btn.dataset.d }) });
+    await loadWeek(DATA.week_of);
+  } catch (e) { row.querySelectorAll('.btn').forEach(x => x.classList.remove('dis')); alert('Couldn\'t save: ' + e.message); }
+}
+loadWeek(null);
+</script>
+</body>
+</html>
