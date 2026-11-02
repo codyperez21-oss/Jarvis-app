@@ -227,11 +227,12 @@
   /* B5: Tell Talos bottom sheet */
   .sheet-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:110; }
   .sheet-overlay.open { display:block; }
-  .chat-panel { position:fixed; left:0; right:0; bottom:0; z-index:120; margin:0 auto; max-width:640px; max-height:82vh; display:flex; flex-direction:column; border:1px solid var(--border); border-bottom:none; border-radius:16px 16px 0 0; background:var(--black); transform:translateY(105%); visibility:hidden; transition:transform 0.22s ease, visibility 0s linear 0.22s; padding-bottom:env(safe-area-inset-bottom, 0px); }
+  .chat-panel { position:fixed; left:0; right:0; bottom:0; z-index:120; margin:0 auto; max-width:640px; max-height:min(82vh, 82dvh, calc(var(--vvh, 100vh) - 12px)); display:flex; flex-direction:column; border:1px solid var(--border); border-bottom:none; border-radius:16px 16px 0 0; background:var(--black); transform:translateY(105%); visibility:hidden; transition:transform 0.22s ease, visibility 0s linear 0.22s; padding-bottom:env(safe-area-inset-bottom, 0px); }
   .chat-panel.open { transform:translateY(0); visibility:visible; transition:transform 0.22s ease, visibility 0s; }
   .chat-panel-label { display:flex; justify-content:space-between; align-items:center; font-size:11px; }
   .chat-panel-label span { padding:10px 4px; }
-  #chatMessages { flex:1; min-height:200px; max-height:none; }
+  #chatMessages { flex:1 1 auto; min-height:0; max-height:none; }
+  .chat-panel-label, #chatInputRow { flex-shrink:0; }
   .fab { z-index:60; }
   /* B11 tap targets */
   .focus-btn, .confirmation-btn, .modal-close-btn, #chatSend { min-height:44px; }
@@ -1171,6 +1172,7 @@ loadPipelineNeeds();
 const CHAT_URL = "https://affable-chachalaca.pikapod.net/webhook/jarvis-agent-step";
 const chatMessagesEl = document.getElementById('chatMessages');
 const chatInputEl = document.getElementById('chatInput');
+if (window.visualViewport) { const syncVV = () => { document.documentElement.style.setProperty('--vvh', window.visualViewport.height + 'px'); }; window.visualViewport.addEventListener('resize', syncVV); syncVV(); }
 const chatSendEl = document.getElementById('chatSend');
 let conversationHistory = [];
 try {
