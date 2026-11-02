@@ -1,4 +1,4 @@
-const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+const API_KEY = (window.TalosAuth ? TalosAuth.key() : '');
 const BASE = "https://affable-chachalaca.pikapod.net/webhook/";
 const BOT = { pheme:'Pheme', endeavour:'Endeavour', apollo:'Apollo', hermes:'Hermes', demeter:'Demeter', tyche:'Tyche', talos:'Talos' };
 const ROLE = { pheme:'social', hermes:'coordinator', apollo:'outreach', endeavour:'YouTube', demeter:'outreach', tyche:'trading', talos:'Talos data' };
