@@ -19,7 +19,7 @@
     return orig.apply(this, arguments).then(function (r) {
       try {
         var u = typeof input === 'string' ? input : (input && input.url) || '';
-        if ((r.status === 401 || r.status === 403) && u.indexOf(HOST) > -1 && u.indexOf('auth-login') < 0) { clear(); toLogin(); }
+        if ((r.status === 401 || r.status === 403) && u.indexOf(HOST) > -1 && u.indexOf('auth-login') < 0) { var now = Date.now(), last = 0; try { last = +sessionStorage.getItem('talos_bounce') || 0; sessionStorage.setItem('talos_bounce', String(now)); } catch (e2) {} if (now - last > 20000) { clear(); toLogin(); } }
       } catch (e) {}
       return r;
     });
