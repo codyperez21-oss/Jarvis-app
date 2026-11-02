@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Talos — Needs you</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="talos-ui.css">
+</head>
+<body>
+<header class="top">
+  <div class="eyebrow">Talos</div>
+  <h1 id="title">Needs you</h1>
+  <div class="sub" id="subtitle">&nbsp;</div>
+</header>
+<main id="root"><div class="sk"></div><div class="sk"></div><div class="sk"></div></main>
+<div class="snack" id="snack" role="status"><span id="snackTxt"></span><button type="button" id="undoBtn">Undo</button></div>
+<div class="toast" id="toast" role="alert"></div>
+<div id="talosNav"></div><script src="talos-nav.js"></script>
+
+<script src="talos-ui.js"></script>
+<script>
+const UNDO_MS = window.__UNDO_MS || 10000;
+let D = null, HIDDEN = new Set(), PEND = [], EXPANDED = {}, FOCUS = null, NOTE = null, CARDS = [];
+const $ = s => document.querySelector(s);
+const ikey = i => 'w:' + i.source + ':' + i.week_of + ':' + i.id;
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 6000); }
+
+function dueMs(i) { if (!i.due_at) return Infinity; const t = Date.parse(i.due_at.length === 10 ? i.due_at + 'T23:59:00' : i.due_at); return isNaN(t) ? Infinity : t; }
+function when(ms) {
+  if (ms === Infinity) return '';
+  const d = ms - Date.now(), h = Math.round(d / 3600000);
+  if (d < 0) return 'Overdue';
+  if (h < 1) return 'Due within the hour';
+  if (h < 24) return 'Due in ' + h + 'h';
+  return 'Due ' + new Date(ms).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+function ago(ms) { const m = Math.round((Date.now() - ms) / 60000); if (!ms || m < 1) return ''; if (m < 60) return m + 'm ago'; const h = Math.round(m / 60); if (h < 48) return h + 'h ago'; return Math.round(h / 24) + 'd ago'; }
+function kindLabel(k) { return k === 'approve' ? 'Approval' : k === 'decide' ? 'Decision' : 'FYI'; }
+
+function buildCards() {
+  const items = (D.items || []).filter(i => !HIDDEN.has(ikey(i)));
+  const bySrc = {}; items.forEach(i => { if (i.kind === 'approve') (bySrc[i.source] = bySrc[i.source] || []).push(i); });
+  const cards = [], grouped = new Set();
+  Object.keys(bySrc).forEach(s => {
+    if (bySrc[s].length < 2) return;
+    bySrc[s].forEach(i => grouped.add(ikey(i)));
+    cards.push({ type:'group', key:'g:' + s, source:s, items:bySrc[s], due:Math.min.apply(null, bySrc[s].map(dueMs)), age:Math.min.apply(null, bySrc[s].map(i => Date.parse(i.report_updated_at) || 0)) });
+  });
+  items.forEach(i => { if (!grouped.has(ikey(i))) cards.push({ type:'item', key:ikey(i), item:i, due:dueMs(i), age:Date.parse(i.report_updated_at) || 0 }); });
+  (D.batches || []).filter(b => !HIDDEN.has('b:' + b.batch_id)).forEach(b => cards.push({ type:'batch', key:'b:' + b.batch_id, batch:b, due:Infinity, age:Date.parse(b.created_at) || 0 }));
+  cards.sort((a, b) => (a.due - b.due) || (a.age - b.age));
+  return cards;
+}
+function preview(i) {
+  return (i.image_url ? '<img class="q-img" loading="lazy" referrerpolicy="no-referrer" alt="" src="' + esc(i.image_url) + '">' : '') + (i.preview_text ? '<div class="q-prev">' + esc(i.preview_text) + '</div>' : '');
+}
+function itemButtons(i, key) {
+  const B = (act, label, cls, extra) => '<button type="button" class="btn ' + (cls || '') + '" data-act="' + act + '" data-key="' + esc(key) + '"' + (extra || '') + '>' + esc(label) + '</button>';
+  if (i.kind === 'approve') return B('approve', 'Approve', 'primary') + B('changes', 'Changes') + B('dismiss', 'Skip', 'ghost');
+  if (i.kind === 'decide') return (i.options || []).map((o, n) => B('opt', o.label, n === 0 ? 'primary' : '', ' data-opt="' + esc(o.id) + '"')).join('') + B('other', 'Other…') + B('dismiss', 'Skip', 'ghost');
+  return B('dismiss', 'Got it', 'primary');
+}
+function noteBox(key) {
+  const show = NOTE && NOTE.key === key;
+  return '<div class="note' + (show ? ' show' : '') + '"><input type="text" maxlength="1000" data-note="' + esc(key) + '" placeholder="' + (NOTE && NOTE.mode === 'other' ? 'What do you want? (required)' : 'What should change? (optional)') + '"><div class="q-act"><button type="button" class="btn primary" data-act="note-send" data-key="' + esc(key) + '">Send</button><button type="button" class="btn ghost" data-act="note-cancel" data-key="' + esc(key) + '">Cancel</button></div></div>';
+}
+function renderItem(c) {
+  const i = c.item, k = c.key, d = when(c.due);
+  const failed = i.status === 'failed' ? '<span class="pill red">Failed' + esc(i.status_note ? ': ' + i.status_note : '') + ' — decide again</span>' : '';
+  return '<article class="q' + (FOCUS === k ? ' focus' : '') + '" tabindex="0" data-key="' + esc(k) + '"' + (i.kind !== 'decide' ? ' data-swipe="1"' : '') + '>' +
+    '<div class="q-top">' + chip(i.source) + '<span class="pill">' + kindLabel(i.kind) + '</span><span class="sp"></span>' + (d ? '<span class="pill ' + (d === 'Overdue' ? 'red' : 'amber') + '">' + esc(d) + '</span>' : '') + '</div>' +
+    '<h3 class="q-title">' + esc(i.text) + '</h3>' + preview(i) + (failed ? '<div style="margin-top:8px">' + failed + '</div>' : '') +
+    '<div class="q-sub">' + esc(i.payload_ref || i.id) + (c.age ? ' · ' + esc(ago(c.age)) : '') + '</div>' +
+    '<div class="q-act">' + itemButtons(i, k) + '</div>' + noteBox(k) + '</article>';
+}
+function renderGroup(c) {
+  const k = c.key, open = !!EXPANDED[k], n = c.items.length;
+  const inner = open ? c.items.map(i => {
+    const ik = ikey(i);
+    return '<div class="draft"><b>' + esc(i.text) + '</b>' + preview(i) + '<small>' + esc(i.payload_ref || i.id) + '</small><div class="q-act"><button type="button" class="btn primary" data-act="approve" data-key="' + esc(ik) + '">Approve</button><button type="button" class="btn" data-act="changes" data-key="' + esc(ik) + '">Changes</button></div>' + noteBox(ik) + '</div>';
+  }).join('') : '';
+  return '<article class="q' + (FOCUS === k ? ' focus' : '') + '" tabindex="0" data-key="' + esc(k) + '">' +
+    '<div class="q-top">' + chip(c.source) + '<span class="pill">Approval</span><span class="sp"></span>' + (when(c.due) ? '<span class="pill amber">' + esc(when(c.due)) + '</span>' : '') + '</div>' +
+    '<h3 class="q-title">Approve ' + n + ' ' + esc(botName(c.source)) + ' items</h3>' +
+    (open ? '' : '<div class="q-prev">' + c.items.slice(0, 4).map(i => '• ' + esc(i.text.length > 110 ? i.text.slice(0, 110) + '…' : i.text)).join('\n') + (n > 4 ? '\n+ ' + (n - 4) + ' more' : '') + '</div>') +
+    '<div class="drafts' + (open ? ' show' : '') + '">' + inner + '</div>' +
+    '<div class="q-act"><button type="button" class="btn primary" data-act="approve-group" data-key="' + esc(k) + '">Approve all ' + n + '</button><button type="button" class="btn" data-act="expand" data-key="' + esc(k) + '">' + (open ? 'Collapse' : 'Review one by one') + '</button></div></article>';
+}
+function renderBatch(c) {
+  const b = c.batch, k = c.key, open = !!EXPANDED[k], n = b.count, noun = b.kind === 'followup' ? 'follow-up emails' : b.kind === 'outreach' ? 'intro emails' : 'emails';
+  const regions = (b.regions || []).filter(Boolean).join(', ');
+  const drafts = open ? (b.items || []).map(x => '<div class="draft"><b>' + esc(x.practice_name) + '</b><small>' + esc([x.city, x.external_id].filter(Boolean).join(' · ')) + '</small><pre>' + esc(x.draft_text) + '</pre>' +
+    '<div class="sb"><button type="button" class="btn ghost" data-act="sendback" data-key="' + esc(k) + '" data-lead="' + esc(x.lead_id) + '" data-draft="' + esc(x.draft_event_id) + '">Send back with a note</button></div>' + noteBox(k + ':' + x.draft_event_id) + '</div>').join('') : '';
+  const peek = open ? '' : '<div class="q-prev">' + (b.items || []).slice(0, 4).map(x => '• ' + esc(x.practice_name) + ' — ' + esc(x.first_line || '')).join('\n') + (n > 4 ? '\n+ ' + (n - 4) + ' more' : '') + '</div>';
+  return '<article class="q' + (FOCUS === k ? ' focus' : '') + '" tabindex="0" data-key="' + esc(k) + '">' +
+    '<div class="q-top">' + chip('apollo') + '<span class="pill">Approval</span><span class="sp"></span><span class="pill amber">Emails send after you approve</span></div>' +
+    '<h3 class="q-title">Approve ' + n + ' ' + esc(noun) + '</h3><div class="q-sub">' + esc(b.label || b.batch_id) + (regions ? ' · ' + esc(regions) : '') + (c.age ? ' · ' + esc(ago(c.age)) : '') + '</div>' + peek +
+    '<div class="drafts' + (open ? ' show' : '') + '">' + drafts + '</div>' +
+    '<div class="q-act"><button type="button" class="btn primary" data-act="approve-batch" data-key="' + esc(k) + '"' + (open ? '' : ' disabled') + '>' + (open ? 'Approve ' + n : 'Read the emails to approve') + '</button><button type="button" class="btn" data-act="expand" data-key="' + esc(k) + '">' + (open ? 'Collapse' : 'Read all ' + n) + '</button><button type="button" class="btn ghost" data-act="skip-batch" data-key="' + esc(k) + '">Skip all</button></div></article>';
+}
+function decisionText(r) {
+  const d = r.decision; if (d === 'approve') return 'Approved'; if (d === 'changes') return 'Changes requested'; if (d === 'dismiss') return 'Dismissed'; if (d === 'other') return 'Your answer';
+  if (String(d).indexOf('option:') === 0) { const o = (r.options || []).find(x => 'option:' + x.id === d); return o ? o.label : 'Chosen'; } return d;
+}
+function statusPill(r) {
+  const n = r.status_note ? ': ' + r.status_note : '';
+  if (r.status === 'done') return '<span class="pill green">Done' + esc(n) + '</span>';
+  if (r.status === 'in_progress') return '<span class="pill amber">In progress' + esc(n) + '</span>';
+  return '<span class="pill amber">Sent to ' + esc(botName(r.source)) + '</span>';
+}
+function renderAll() {
+  if (!D) return;
+  CARDS = buildCards();
+  if (!FOCUS || !CARDS.some(c => c.key === FOCUS)) FOCUS = CARDS.length ? CARDS[0].key : null;
+  const n = CARDS.reduce((a, c) => a + (c.type === 'group' ? c.items.length : 1), 0);
+  document.title = (n ? '(' + n + ') ' : '') + 'Talos — Needs you';
+  if (window.setNavBadge) window.setNavBadge(n);
+  $('#subtitle').textContent = n ? n + (n === 1 ? ' thing is' : ' things are') + ' waiting on you' : 'Nothing waiting';
+  let h = '';
+  if (CARDS.length) {
+    h += '<div class="hint touch">Swipe right to approve, left to request changes.</div><div class="hint keys">J / K move · A approve · C changes · 1–4 options · E expand · U undo</div>';
+    h += CARDS.map(c => c.type === 'group' ? renderGroup(c) : c.type === 'batch' ? renderBatch(c) : renderItem(c)).join('');
+  } else {
+    const nx = D.next_scheduled;
+    h += '<div class="empty"><h2>You’re all caught up</h2><p>' + (nx ? 'Next up: ' + esc(nx.label) + ' · ' + esc(botName(nx.source)) + ', ' + esc(new Date(nx.at).toLocaleString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' })) : 'Nothing is scheduled yet.') + '</p></div>';
+  }
+  const rec = (D.recent || []).filter(r => !HIDDEN.has('w:' + r.source + ':' + r.week_of + ':' + r.item_id));
+  const mine = PEND.map(p => '<div class="rec"><div class="t">' + esc(p.label) + '</div><div class="m"><span class="pill">Sending in a moment — Undo</span></div></div>').join('');
+  if (rec.length || mine) {
+    h += '<div class="sec">Sent</div>' + mine + rec.map(r => '<div class="rec"><div class="t">' + esc(r.text.length > 140 ? r.text.slice(0, 140) + '…' : r.text) + '</div><div class="m">' + chip(r.source) + '<span>' + esc(decisionText(r)) + '</span>' + statusPill(r) + '</div>' + (r.comment ? '<div class="q-sub">“' + esc(r.comment) + '”</div>' : '') + '</div>').join('');
+  }
+  const active = document.activeElement && document.activeElement.matches && document.activeElement.matches('input[data-note]') ? document.activeElement.value : null;
+  $('#root').innerHTML = h;
+  if (NOTE) { const inp = document.querySelector('input[data-note="' + CSS.escape(NOTE.key) + '"]'); if (inp) { if (active != null) inp.value = active; inp.focus(); } }
+}
+async function load() {
+  try { D = await api('needs-overview'); renderAll(); }
+  catch (e) { if (!D) $('#root').innerHTML = '<div class="err">Couldn’t load: ' + esc(e.message) + ' <button class="btn" style="margin-top:10px" onclick="load()">Retry</button></div>'; }
+}
+
+/* ---- deferred commit with undo ---- */
+function schedule(keys, label, run) {
+  const p = { keys: [].concat(keys), label, run, end: Date.now() + UNDO_MS, t: null, focus: FOCUS };
+  p.t = setTimeout(() => fire(p), UNDO_MS); PEND.push(p); HIDDEN = new Set([...HIDDEN, ...p.keys]);
+  NOTE = null; renderAll(); renderSnack();
+}
+async function fire(p) {
+  clearTimeout(p.t); if (!PEND.includes(p)) return; PEND = PEND.filter(x => x !== p); renderSnack();
+  try { const res = await p.run(); if (res && res.skipped && res.skipped.length) toast(res.skipped.length + ' skipped: ' + (res.skipped[0].reason || 'changed since you looked')); }
+  catch (e) { p.keys.forEach(k => HIDDEN.delete(k)); toast('Couldn’t save: ' + e.message); }
+  await load(); p.keys.forEach(k => HIDDEN.delete(k)); renderAll();
+}
+function undo() { const p = PEND.pop(); if (!p) return; clearTimeout(p.t); p.keys.forEach(k => HIDDEN.delete(k)); if (p.focus) FOCUS = p.focus; renderAll(); renderSnack(); }
+function renderSnack() {
+  const s = $('#snack'); if (!PEND.length) { s.classList.remove('show'); clearInterval(renderSnack._i); return; }
+  const upd = () => { const p = PEND[PEND.length - 1]; if (!p) return; $('#snackTxt').textContent = p.label + (PEND.length > 1 ? ' (+' + (PEND.length - 1) + ')' : '') + ' · ' + Math.max(0, Math.ceil((p.end - Date.now()) / 1000)) + 's'; };
+  s.classList.add('show'); upd(); clearInterval(renderSnack._i); renderSnack._i = setInterval(upd, 250);
+}
+const short = t => t.length > 48 ? t.slice(0, 48) + '…' : t;
+const findItem = key => (D.items || []).find(i => ikey(i) === key);
+function sendItem(i, decision, comment, label) {
+  schedule(ikey(i), label + ': ' + short(i.text), () => api('weekly-decide', { method:'POST', body: JSON.stringify({ source:i.source, weekOf:i.week_of, itemId:i.id, decision, comment: comment || null }) }));
+}
+function approveGroup(c) {
+  schedule(c.items.map(ikey), 'Approved ' + c.items.length + ' ' + botName(c.source) + ' items', async () => {
+    for (const i of c.items) await api('weekly-decide', { method:'POST', body: JSON.stringify({ source:i.source, weekOf:i.week_of, itemId:i.id, decision:'approve', comment:null }) });
+  });
+}
+function batchDecide(b, action) {
+  const ids = (b.items || []).map(x => x.draft_event_id);
+  schedule('b:' + b.batch_id, (action === 'approve' ? 'Approved ' : 'Skipped ') + b.count + ' emails', () => api('pipeline-batch-decide', { method:'POST', body: JSON.stringify({ batchId:b.batch_id, action, draftEventIds:ids }) }));
+}
+function openNote(key, mode) { NOTE = { key, mode }; renderAll(); }
+function act(a, key, el) {
+  const card = CARDS.find(c => c.key === key);
+  if (a === 'approve-group') return approveGroup(card);
+  if (a === 'expand') { EXPANDED[key] = !EXPANDED[key]; return renderAll(); }
+  if (a === 'approve-batch') { if (!EXPANDED[key]) return toast('Open the emails first so you can read them.'); return batchDecide(card.batch, 'approve'); }
+  if (a === 'skip-batch') return batchDecide(card.batch, 'reject');
+  if (a === 'sendback') { return openNote(key + ':' + el.dataset.draft, 'sendback:' + el.dataset.lead + ':' + el.dataset.draft); }
+  if (a === 'note-cancel') { NOTE = null; return renderAll(); }
+  if (a === 'note-send') {
+    const inp = document.querySelector('input[data-note="' + CSS.escape(key) + '"]'), v = inp ? inp.value.trim() : '';
+    if (NOTE && NOTE.mode.indexOf('sendback:') === 0) {
+      const p = NOTE.mode.split(':'); if (!v) return toast('Add a note so Apollo knows what to fix.');
+      NOTE = null;
+      return api('pipeline-batch-sendback', { method:'POST', body: JSON.stringify({ leadId:p[1], draftEventId:p[2], note:v }) }).then(() => { toast('Sent back to Apollo.'); return load(); }).catch(e => toast('Couldn’t send back: ' + e.message));
+    }
+    const it = findItem(key); if (!it) return;
+    if (NOTE && NOTE.mode === 'other') { if (!v) return toast('Add a few words so Hermes knows what you want.'); return sendItem(it, 'other', v, 'Answered'); }
+    return sendItem(it, 'changes', v, 'Changes requested');
+  }
+  const it = findItem(key); if (!it) return;
+  if (a === 'approve') return sendItem(it, 'approve', null, 'Approved');
+  if (a === 'changes') return openNote(key, 'changes');
+  if (a === 'other') return openNote(key, 'other');
+  if (a === 'opt') return sendItem(it, 'option:' + el.dataset.opt, null, 'Chose ' + ((it.options || []).find(o => o.id === el.dataset.opt) || {}).label);
+  if (a === 'dismiss') return sendItem(it, 'dismiss', null, 'Skipped');
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && !b.disabled) act(b.dataset.act, b.dataset.key, b); });
+$('#undoBtn').addEventListener('click', undo);
+
+/* ---- swipe ---- */
+let sw = null;
+document.addEventListener('pointerdown', e => { const c = e.target.closest('.q[data-swipe]'); if (!c || e.target.closest('button,input,a,pre')) return; sw = { c, x:e.clientX, y:e.clientY, dx:0, lock:false }; });
+document.addEventListener('pointermove', e => {
+  if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+  if (!sw.lock) { if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } if (Math.abs(dx) > 12) sw.lock = true; }
+  if (sw.lock) { sw.dx = dx; sw.c.style.transform = 'translateX(' + dx + 'px)'; sw.c.dataset.dir = dx > 0 ? 'r' : 'l'; }
+});
+function endSwipe() {
+  if (!sw) return; const { c, dx } = sw; sw = null; c.style.transform = ''; delete c.dataset.dir;
+  if (Math.abs(dx) < 90) return;
+  const key = c.dataset.key, it = findItem(key); if (!it) return;
+  if (dx > 0) sendItem(it, it.kind === 'fyi' ? 'dismiss' : 'approve', null, it.kind === 'fyi' ? 'Got it' : 'Approved');
+  else if (it.kind === 'approve') openNote(key, 'changes');
+}
+document.addEventListener('pointerup', endSwipe); document.addEventListener('pointercancel', endSwipe);
+
+/* ---- keyboard ---- */
+document.addEventListener('keydown', e => {
+  if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Escape') { NOTE = null; renderAll(); } else if (e.key === 'Enter') { const b = e.target.closest('.note').querySelector('[data-act="note-send"]'); if (b) b.click(); } return; }
+  if (e.metaKey || e.ctrlKey || e.altKey || !D) return;
+  const k = e.key.toLowerCase(); let idx = CARDS.findIndex(c => c.key === FOCUS); const c = CARDS[idx];
+  if (k === 'j' || k === 'k') { idx = Math.max(0, Math.min(CARDS.length - 1, idx + (k === 'j' ? 1 : -1))); FOCUS = CARDS[idx] && CARDS[idx].key; renderAll(); const el = document.querySelector('.q.focus'); if (el) el.scrollIntoView({ block:'center', behavior:'smooth' }); return; }
+  if (k === 'u' || k === 'z') return undo();
+  if (!c) return;
+  if (k === 'e' && c.type !== 'item') return act('expand', c.key);
+  if (c.type === 'group') { if (k === 'a') approveGroup(c); return; }
+  if (c.type === 'batch') { if (k === 'a') act('approve-batch', c.key); return; }
+  const it = c.item;
+  if (k === 'a' && it.kind === 'approve') act('approve', c.key);
+  else if (k === 'c' && it.kind === 'approve') act('changes', c.key);
+  else if (k === 'd' || (k === 'a' && it.kind === 'fyi')) act('dismiss', c.key);
+  else if (/^[1-4]$/.test(k) && it.kind === 'decide' && it.options && it.options[+k - 1]) act('opt', c.key, { dataset:{ opt: it.options[+k - 1].id } });
+  else if (k === 'o' && it.kind === 'decide') act('other', c.key);
+});
+window.addEventListener('pagehide', () => { PEND.slice().forEach(p => { clearTimeout(p.t); p.run().catch(() => {}); }); PEND = []; });
+setInterval(() => { const a = document.activeElement; if (!document.hidden && !PEND.length && !(a && a.matches && a.matches('input'))) load(); }, 30000);
+load();
+</script>
+</body>
+</html>
