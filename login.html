@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Talos</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#c9a84c;--card:#181818;--border:#2a2a2a;--white:#f0ece4;--gray:#9a968e;--red:#d27a7a}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#0a0a0a;color:var(--white);font-family:"DM Sans",system-ui,sans-serif}
+main{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px));max-width:420px;margin:0 auto}
+.eyebrow{font:11px "DM Mono",monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+h1{font:44px/1 "Bebas Neue",sans-serif;margin:6px 0 4px;letter-spacing:.02em}
+p{color:var(--gray);margin:0 0 22px;font-size:15px;line-height:1.45}
+label{display:block;font:11px "DM Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);margin-bottom:8px}
+input{width:100%;min-height:52px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--white);font:17px "DM Sans",system-ui,sans-serif;padding:0 16px;outline:none}
+input:focus{border-color:var(--gold)}
+button{width:100%;min-height:52px;margin-top:14px;border:0;border-radius:14px;background:var(--gold);color:#0a0a0a;font:600 16px "DM Sans",system-ui,sans-serif;cursor:pointer}
+button:disabled{opacity:.5}
+#msg{min-height:22px;margin-top:14px;font-size:14px;color:var(--red)}
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">RVLTN Performance</div>
+  <h1>Talos</h1>
+  <p>Enter your passcode to unlock this device.</p>
+  <form id="f" autocomplete="on">
+    <label for="pw">Passcode</label>
+    <input id="pw" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    <button id="go" type="submit">Unlock</button>
+    <div id="msg" role="alert"></div>
+  </form>
+</main>
+<script src="talos-auth.js"></script>
+<script>
+(function () {
+  var BASE = "https://affable-chachalaca.pikapod.net/webhook/";
+  var f = document.getElementById('f'), pw = document.getElementById('pw'), go = document.getElementById('go'), msg = document.getElementById('msg');
+  function nextUrl() {
+    var n = new URLSearchParams(location.search).get('next') || '';
+    return /^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_=&%.-]*)?$/.test(n) ? n : 'index.html';
+  }
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    msg.textContent = ''; go.disabled = true; go.textContent = 'Checking...';
+    var c = new AbortController(); var t = setTimeout(function () { c.abort(); }, 15000);
+    fetch(BASE + 'auth-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode: pw.value }), signal: c.signal })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { s: r.status, d: d }; }); })
+      .then(function (x) {
+        if (x.s === 200 && x.d.ok && x.d.key) {
+          if (!window.TalosAuth.set(x.d.key)) { msg.textContent = 'This browser blocked storage, so the unlock could not be saved.'; return; }
+          location.replace(nextUrl());
+        } else if (x.s === 429) {
+          var m = Math.max(1, Math.ceil((x.d.retry_after || 60) / 60)); msg.textContent = 'Too many attempts. Try again in about ' + m + ' min.';
+        } else if (x.s === 503) { msg.textContent = 'Login is not set up yet.';
+        } else { msg.textContent = 'Wrong passcode.'; }
+      })
+      .catch(function () { msg.textContent = 'Could not reach the server. Check your connection and try again.'; })
+      .then(function () { clearTimeout(t); go.disabled = false; go.textContent = 'Unlock'; pw.value = ''; });
+  });
+  pw.focus();
+})();
+</script>
+</body>
+</html>
