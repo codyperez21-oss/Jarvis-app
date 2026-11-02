@@ -1,6 +1,6 @@
 (function () {
   var root = document.getElementById('bizHome'); if (!root) return;
-  var KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck", BASE = "https://affable-chachalaca.pikapod.net/webhook/";
+  var KEY = (window.TalosAuth ? TalosAuth.key() : ''), BASE = "https://affable-chachalaca.pikapod.net/webhook/";
   var UPA = String.fromCharCode(9650), DNA = String.fromCharCode(9660), DASH = String.fromCharCode(8212), MID = String.fromCharCode(183);
   var SHORT = { rvltn: 'RVLTN', replete: 'Replete RX', youtube: 'YouTube', trading: 'Trading', nido: 'Nido' };
   var css = '.hb{margin:0 0 26px;font-family:"DM Sans",system-ui,sans-serif;color:var(--white,#f0ece4)}' +
