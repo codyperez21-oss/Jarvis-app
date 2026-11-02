@@ -290,6 +290,7 @@
 </div>
 
 <main>
+  <div id="botStrip"></div>
   <div id="needsYou">
     <div class="section-label">Needs you</div>
     <div class="focus-stack" id="focusStack"></div>
@@ -1312,7 +1313,7 @@ document.getElementById('newConvoBtn').addEventListener('click', () => {
   <svg width="24" height="24" viewBox="0 0 64 64"><path d="M6 32 Q16 23 20 32 Q22 37 24 10 L27 54 Q29 40 34 32 Q42 24 58 32" stroke="#0a0a0a" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 </button>
 
-<nav class="bottom-nav">
+<nav class="bottom-nav" style="display:none">
   <a href="index.html" class="active"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Home</span></a>
   <a href="clients.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clients</span></a>
   <a href="clinics.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Clinics</span></a>
@@ -1321,5 +1322,7 @@ document.getElementById('newConvoBtn').addEventListener('click', () => {
   <a href="weekly.html"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5"/></svg><span>Weekly</span></a>
 </nav>
 
+<div id="talosNav"></div><script src="talos-nav.js"></script>
+<script src="home-strip.js"></script>
 </body>
 </html>
