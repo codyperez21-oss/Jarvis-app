@@ -292,7 +292,7 @@
 <main>
   <div id="bizHome"></div>
   <div id="needsYou">
-    <div class="section-label">Needs you</div>
+    <div class="section-label" id="fuLabel">Client follow-ups</div>
     <div class="focus-stack" id="focusStack"></div>
     <div class="focus-stack" id="pipelineNeeds" style="padding-bottom:0;"></div>
     <div class="focus-stack" id="nearingNeeds" style="padding:10px 0 0;"></div>
@@ -1127,7 +1127,8 @@ function updateNeedsYou() {
   const c = window.nyCounts;
   const total = c.focus + c.confirmations + c.pipeline;
   document.getElementById('needsYou').style.display = (total > 0 || window.nyError) ? 'block' : 'none';
-  window.__oldNeeds = total; if (window.updateNeedsStat) window.updateNeedsStat(); else document.getElementById('statFocus').textContent = total;
+  { const fl = document.getElementById('fuLabel'); if (fl) fl.textContent = 'Client follow-ups' + (total > 0 ? ' · ' + total : ''); }
+  window.__oldNeeds = total;
 }
 // Strip stray emoji glyphs that legacy strings still produce (no-emoji rule)
 (function () {
