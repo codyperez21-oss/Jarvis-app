@@ -19,26 +19,21 @@
 <script src="talos-ui.js"></script>
 <script>
 let OPEN = {};
-const ORDER = ['pheme', 'endeavour', 'apollo', 'hermes'];
-const ROLE = { pheme:'Social media', endeavour:'YouTube', apollo:'Replete RX outreach', hermes:'Coordinator' };
-function card(src, b) {
-  if (!b) return '<div class="card"><div class="card-h" style="cursor:default"><div class="t"><b>' + esc(botName(src)) + '</b><span>No report yet</span></div></div></div>';
-  const hl = headlineOf(b), keys = Object.keys(b.metrics || {}), pm = b.prev_metrics || {};
-  const ser = (b.metrics_series || []); const main = ser.find(s => s.label === hl) || ser[0];
-  const head = hl ? '<div class="head-tile"><div><div class="big">' + esc(b.metrics[hl]) + '</div><div class="lbl">' + esc(hl) + '</div></div></div>' + (fmtDelta(b.metrics[hl], pm[hl]) ? '<div class="tile-d" style="margin-top:6px">' + esc(fmtDelta(b.metrics[hl], pm[hl])) + '</div>' : '') + (main ? spark(main.points, 200, 44) : '') : '<div class="sub">No numbers in this report.</div>';
-  const all = keys.length > 1 ? '<div class="tiles" style="margin-top:14px">' + keys.filter(k => k !== hl).map(k => tileHtml(k, b.metrics[k], pm[k])).join('') + '</div>' : '';
-  const more = ser.filter(s => s !== main).length ? seriesHtml(ser.filter(s => s !== main)) : '';
-  const open = !!OPEN[src];
-  return '<div class="card' + (open ? ' open' : '') + '"><button class="card-h" data-b="' + esc(src) + '"><div class="t"><b>' + esc(botName(src)) + '</b><span>' + esc(ROLE[src] || '') + ' · week of ' + esc(fmtWeek(b.week_of)) + '</span></div><span class="chev">▶</span></button><div style="padding:0 16px 16px">' + head + '</div>' + (all || more ? '<div class="card-b">' + all + more + '</div>' : '') + '</div>';
+function card(b) {
+  const nums = b.numbers || [];
+  if (!nums.length && (b.id === 'trading' || b.id === 'nido')) return '';
+  const open = !!OPEN[b.id], top = nums.slice(0, 3), rest = nums.slice(3);
+  return '<div class="card' + (open ? ' open' : '') + '"><div style="padding:16px 16px 4px"><div class="eyebrow">' + esc(b.id === 'rvltn' ? 'Practice' : b.id === 'replete' ? 'Outreach' : b.id === 'youtube' ? 'YouTube' : b.id === 'trading' ? 'Paper account' : 'Project') + '</div>' +
+    '<a href="business.html?b=' + esc(b.id) + '" style="color:inherit;text-decoration:none"><h2 style="font-family:\'Bebas Neue\',sans-serif;font-weight:400;font-size:28px;letter-spacing:.03em;margin-top:2px">' + esc(b.name) + '</h2></a></div>' +
+    '<div style="padding:0 16px 16px">' + (top.length ? top.map(numHtml).join('') : '<div class="sub" style="padding:8px 0">No numbers yet.</div>') +
+    (rest.length ? '<div class="card-b" style="padding:0">' + rest.map(numHtml).join('') + '</div><button type="button" class="btn" style="width:100%;margin-top:10px" data-b="' + esc(b.id) + '">' + (open ? 'Show fewer' : 'Show all ' + nums.length) + '</button>' : '') + '</div></div>';
 }
 function render(d) {
-  const by = {}; (d.bots || []).forEach(b => { by[b.source] = b; });
-  const w = (d.bots || []).map(b => b.week_of).sort().pop();
-  document.getElementById('sub').textContent = w ? 'Latest reports · week of ' + fmtWeek(w) : 'No reports yet';
-  document.getElementById('root').innerHTML = ORDER.map(s => card(s, by[s])).join('');
+  document.getElementById('sub').textContent = 'By business, this week against last week';
+  document.getElementById('root').innerHTML = (d.businesses || []).map(card).join('');
 }
-document.addEventListener('click', e => { const h = e.target.closest('.card-h[data-b]'); if (h) { OPEN[h.dataset.b] = !OPEN[h.dataset.b]; h.parentElement.classList.toggle('open', OPEN[h.dataset.b]); } });
-api('numbers-overview').then(render).catch(e => { document.getElementById('root').innerHTML = '<div class="err">Couldn’t load: ' + esc(e.message) + '</div>'; });
+document.addEventListener('click', e => { const h = e.target.closest('button[data-b]'); if (h) { OPEN[h.dataset.b] = !OPEN[h.dataset.b]; h.parentElement.parentElement.classList.toggle('open', OPEN[h.dataset.b]); h.textContent = OPEN[h.dataset.b] ? 'Show fewer' : 'Show all'; } });
+api('numbers-by-business').then(render).catch(e => { document.getElementById('root').innerHTML = '<div class="err">Couldn’t load: ' + esc(e.message) + '</div>'; });
 </script>
 <script src="talos-nav.js"></script>
 </body>
