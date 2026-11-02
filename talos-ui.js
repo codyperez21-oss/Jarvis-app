@@ -15,7 +15,7 @@ function fmtDelta(cur, prev) {
   if (typeof cur !== 'number' || typeof prev !== 'number') return '';
   const d = cur - prev; if (d === 0) return 'no change vs last week';
   const pct = prev !== 0 ? ' (' + (d > 0 ? '+' : '') + Math.round(d / Math.abs(prev) * 100) + '%)' : '';
-  return (d > 0 ? '\\u25b2 +' : '\\u25bc ') + +d.toFixed(2) + pct + ' vs last week';
+  return (d > 0 ? String.fromCharCode(9650) + ' +' : String.fromCharCode(9660) + ' ') + +d.toFixed(2) + pct + ' vs last week';
 }
 function spark(points, w, h) {
   const p = (points || []).slice().sort((a, b) => a.date < b.date ? -1 : 1), v = p.map(x => Number(x.value)).filter(x => isFinite(x));
@@ -33,7 +33,7 @@ function md(src) {
     const l = raw.trimEnd();
     if (!l.trim()) { flush(); closeList(); continue; }
     const h = l.match(/^#{1,4}\s+(.*)$/); if (h) { flush(); closeList(); out += '<h4>' + inline(h[1]) + '</h4>'; continue; }
-    const b = l.match(/^\s*[-*\\u2022]\s+(.*)$/); if (b) { flush(); if (!list) { out += '<ul>'; list = true; } out += '<li>' + inline(b[1]) + '</li>'; continue; }
+    const b = l.match(/^\s*[-*]\s+(.*)$/); if (b) { flush(); if (!list) { out += '<ul>'; list = true; } out += '<li>' + inline(b[1]) + '</li>'; continue; }
     closeList(); para.push(l);
   }
   flush(); closeList(); return out;
