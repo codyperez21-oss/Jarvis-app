@@ -56,7 +56,7 @@
   function render(o) {
     var s = o.stats || {};
     window.__queue = s.needs || 0;
-    window.updateNeedsStat = function () { var el = document.getElementById('statFocus'); if (el) el.textContent = (window.__oldNeeds || 0) + (window.__queue || 0); };
+    /* stat defined at load */
     window.updateNeedsStat();
     var rev = document.getElementById('statRev'); if (rev) rev.textContent = s.revenue_week == null ? DASH : fmt(s.revenue_week, 'usd');
     var h = '<div class="hb"><div class="section-label">Businesses</div><div class="hb-grid">' + (o.businesses || []).map(card).join('') + '</div>';
@@ -72,10 +72,12 @@
       var r = document.getElementById('hbRetry'); if (r) r.addEventListener('click', load);
     });
   }
+  window.updateNeedsStat = function () { var el = document.getElementById('statFocus'); if (el) el.textContent = window.__queue == null ? DASH : window.__queue; };
+  window.updateNeedsStat();
   var needsStat = document.getElementById('statFocus');
   if (needsStat && needsStat.parentElement) {
     var box = needsStat.parentElement; box.style.cursor = 'pointer'; box.setAttribute('role', 'link'); box.tabIndex = 0;
-    var go = function () { if ((window.__queue || 0) > 0) location.href = 'needs.html'; else { var n = document.getElementById('needsYou'); if (n) n.scrollIntoView({ behavior: 'smooth' }); } };
+    var go = function () { var n = document.getElementById('needsYou'); if ((window.__queue || 0) === 0 && (window.__oldNeeds || 0) > 0 && n) n.scrollIntoView({ behavior: 'smooth' }); else location.href = 'needs.html'; };
     box.addEventListener('click', go); box.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
   }
   load();
