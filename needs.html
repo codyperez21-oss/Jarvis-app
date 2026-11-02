@@ -17,6 +17,8 @@
   <div class="eyebrow">Talos</div>
   <h1 id="title">Needs you</h1>
   <div class="sub" id="subtitle">&nbsp;</div>
+  <div class="seg" id="seg"><button type="button" data-tab="open" class="on">Open</button><button type="button" data-tab="history">History</button></div>
+  <div class="fchips" id="fchips"></div>
 </header>
 <main id="root"><div class="sk"></div><div class="sk"></div><div class="sk"></div></main>
 <div class="snack" id="snack" role="status"><span id="snackTxt"></span><button type="button" id="undoBtn">Undo</button></div>
@@ -26,7 +28,9 @@
 <script src="talos-ui.js"></script>
 <script>
 const UNDO_MS = window.__UNDO_MS || 10000;
-let D = null, HIDDEN = new Set(), PEND = [], EXPANDED = {}, FOCUS = null, NOTE = null, CARDS = [];
+let D = null, HIDDEN = new Set(), PEND = [], EXPANDED = {}, FOCUS = null, NOTE = null, CARDS = [], TAB = 'open';
+let BF = (() => { const b = new URLSearchParams(location.search).get('b'); return BIZ[b] ? b : 'all'; })();
+const inBF = x => BF === 'all' || (x.business || 'rvltn') === BF;
 const $ = s => document.querySelector(s);
 const ikey = i => 'w:' + i.source + ':' + i.week_of + ':' + i.id;
 
@@ -45,16 +49,16 @@ function ago(ms) { const m = Math.round((Date.now() - ms) / 60000); if (!ms || m
 function kindLabel(k) { return k === 'approve' ? 'Approval' : k === 'decide' ? 'Decision' : 'FYI'; }
 
 function buildCards() {
-  const items = (D.items || []).filter(i => !HIDDEN.has(ikey(i)));
-  const bySrc = {}; items.forEach(i => { if (i.kind === 'approve') (bySrc[i.source] = bySrc[i.source] || []).push(i); });
+  const items = (D.items || []).filter(i => !HIDDEN.has(ikey(i)) && inBF(i));
+  const bySrc = {}; items.forEach(i => { if (i.kind === 'approve') { const gk = i.source + '|' + (i.business || 'rvltn'); (bySrc[gk] = bySrc[gk] || []).push(i); } });
   const cards = [], grouped = new Set();
   Object.keys(bySrc).forEach(s => {
     if (bySrc[s].length < 2) return;
     bySrc[s].forEach(i => grouped.add(ikey(i)));
-    cards.push({ type:'group', key:'g:' + s, source:s, items:bySrc[s], due:Math.min.apply(null, bySrc[s].map(dueMs)), age:Math.min.apply(null, bySrc[s].map(i => Date.parse(i.report_updated_at) || 0)) });
+    cards.push({ type:'group', key:'g:' + s, source:bySrc[s][0].source, business:bySrc[s][0].business, items:bySrc[s], due:Math.min.apply(null, bySrc[s].map(dueMs)), age:Math.min.apply(null, bySrc[s].map(i => Date.parse(i.report_updated_at) || 0)) });
   });
   items.forEach(i => { if (!grouped.has(ikey(i))) cards.push({ type:'item', key:ikey(i), item:i, due:dueMs(i), age:Date.parse(i.report_updated_at) || 0 }); });
-  (D.batches || []).filter(b => !HIDDEN.has('b:' + b.batch_id)).forEach(b => cards.push({ type:'batch', key:'b:' + b.batch_id, batch:b, due:Infinity, age:Date.parse(b.created_at) || 0 }));
+  (D.batches || []).filter(b => !HIDDEN.has('b:' + b.batch_id) && inBF(b)).forEach(b => cards.push({ type:'batch', key:'b:' + b.batch_id, batch:b, due:Infinity, age:Date.parse(b.created_at) || 0 }));
   cards.sort((a, b) => (a.due - b.due) || (a.age - b.age));
   return cards;
 }
@@ -73,9 +77,9 @@ function noteBox(key) {
 }
 function renderItem(c) {
   const i = c.item, k = c.key, d = when(c.due);
-  const failed = i.status === 'failed' ? '<span class="pill red">Failed' + esc(i.status_note ? ': ' + i.status_note : '') + ' — decide again</span>' : '';
+  const failed = i.status === 'failed' ? '<span class="pill red">Failed — decide again</span>' + (i.status_note ? '<div class="stline clamp">' + esc(i.status_note) + '</div>' : '') : '';
   return '<article class="q' + (FOCUS === k ? ' focus' : '') + '" tabindex="0" data-key="' + esc(k) + '"' + (i.kind !== 'decide' ? ' data-swipe="1"' : '') + '>' +
-    '<div class="q-top">' + chip(i.source) + '<span class="pill">' + kindLabel(i.kind) + '</span><span class="sp"></span>' + (d ? '<span class="pill ' + (d === 'Overdue' ? 'red' : 'amber') + '">' + esc(d) + '</span>' : '') + '</div>' +
+    '<div class="q-top">' + chip(i.source) + bizTag(i.business) + '<span class="pill">' + kindLabel(i.kind) + '</span><span class="sp"></span>' + (d ? '<span class="pill ' + (d === 'Overdue' ? 'red' : 'amber') + '">' + esc(d) + '</span>' : '') + '</div>' +
     '<h3 class="q-title">' + esc(i.text) + '</h3>' + preview(i) + (failed ? '<div style="margin-top:8px">' + failed + '</div>' : '') +
     '<div class="q-sub">' + esc(i.payload_ref || i.id) + (c.age ? ' · ' + esc(ago(c.age)) : '') + '</div>' +
     '<div class="q-act">' + itemButtons(i, k) + '</div>' + noteBox(k) + '</article>';
@@ -87,7 +91,7 @@ function renderGroup(c) {
     return '<div class="draft"><b>' + esc(i.text) + '</b>' + preview(i) + '<small>' + esc(i.payload_ref || i.id) + '</small><div class="q-act"><button type="button" class="btn primary" data-act="approve" data-key="' + esc(ik) + '">Approve</button><button type="button" class="btn" data-act="changes" data-key="' + esc(ik) + '">Changes</button></div>' + noteBox(ik) + '</div>';
   }).join('') : '';
   return '<article class="q' + (FOCUS === k ? ' focus' : '') + '" tabindex="0" data-key="' + esc(k) + '">' +
-    '<div class="q-top">' + chip(c.source) + '<span class="pill">Approval</span><span class="sp"></span>' + (when(c.due) ? '<span class="pill amber">' + esc(when(c.due)) + '</span>' : '') + '</div>' +
+    '<div class="q-top">' + chip(c.source) + bizTag(c.business) + '<span class="pill">Approval</span><span class="sp"></span>' + (when(c.due) ? '<span class="pill amber">' + esc(when(c.due)) + '</span>' : '') + '</div>' +
     '<h3 class="q-title">Approve ' + n + ' ' + esc(botName(c.source)) + ' items</h3>' +
     (open ? '' : '<div class="q-prev">' + c.items.slice(0, 4).map(i => '• ' + esc(i.text.length > 110 ? i.text.slice(0, 110) + '…' : i.text)).join('\n') + (n > 4 ? '\n+ ' + (n - 4) + ' more' : '') + '</div>') +
     '<div class="drafts' + (open ? ' show' : '') + '">' + inner + '</div>' +
@@ -100,7 +104,7 @@ function renderBatch(c) {
     '<div class="sb"><button type="button" class="btn ghost" data-act="sendback" data-key="' + esc(k) + '" data-lead="' + esc(x.lead_id) + '" data-draft="' + esc(x.draft_event_id) + '">Send back with a note</button></div>' + noteBox(k + ':' + x.draft_event_id) + '</div>').join('') : '';
   const peek = open ? '' : '<div class="q-prev">' + (b.items || []).slice(0, 4).map(x => '• ' + esc(x.practice_name) + ' — ' + esc(x.first_line || '')).join('\n') + (n > 4 ? '\n+ ' + (n - 4) + ' more' : '') + '</div>';
   return '<article class="q' + (FOCUS === k ? ' focus' : '') + '" tabindex="0" data-key="' + esc(k) + '">' +
-    '<div class="q-top">' + chip('apollo') + '<span class="pill">Approval</span><span class="sp"></span><span class="pill amber">Emails send after you approve</span></div>' +
+    '<div class="q-top">' + chip('apollo') + bizTag('replete') + '<span class="pill">Approval</span><span class="sp"></span><span class="pill amber">Emails send after you approve</span></div>' +
     '<h3 class="q-title">Approve ' + n + ' ' + esc(noun) + '</h3><div class="q-sub">' + esc(b.label || b.batch_id) + (regions ? ' · ' + esc(regions) : '') + (c.age ? ' · ' + esc(ago(c.age)) : '') + '</div>' + peek +
     '<div class="drafts' + (open ? ' show' : '') + '">' + drafts + '</div>' +
     '<div class="q-act"><button type="button" class="btn primary" data-act="approve-batch" data-key="' + esc(k) + '"' + (open ? '' : ' disabled') + '>' + (open ? 'Approve ' + n : 'Read the emails to approve') + '</button><button type="button" class="btn" data-act="expand" data-key="' + esc(k) + '">' + (open ? 'Collapse' : 'Read all ' + n) + '</button><button type="button" class="btn ghost" data-act="skip-batch" data-key="' + esc(k) + '">Skip all</button></div></article>';
@@ -110,31 +114,52 @@ function decisionText(r) {
   if (String(d).indexOf('option:') === 0) { const o = (r.options || []).find(x => 'option:' + x.id === d); return o ? o.label : 'Chosen'; } return d;
 }
 function statusPill(r) {
-  const n = r.status_note ? ': ' + r.status_note : '';
-  if (r.status === 'done') return '<span class="pill green">Done' + esc(n) + '</span>';
-  if (r.status === 'in_progress') return '<span class="pill amber">In progress' + esc(n) + '</span>';
+  if (r.decision === 'dismiss') return '<span class="pill">Dismissed</span>';
+  if (r.status === 'done') return '<span class="pill green">Done</span>';
+  if (r.status === 'in_progress') return '<span class="pill amber">In progress</span>';
   return '<span class="pill amber">Sent to ' + esc(botName(r.source)) + '</span>';
+}
+const noteLine = r => r.status_note ? '<div class="stline clamp">' + esc(r.status_note) + '</div>' : '';
+function histRow(r) {
+  return '<div class="rec"><div class="t">' + esc(r.text.length > 140 ? r.text.slice(0, 140) + '…' : r.text) + '</div><div class="m">' + chip(r.source) + bizTag(r.business) + '<span>' + esc(decisionText(r)) + '</span>' + statusPill(r) + '</div>' + noteLine(r) + (r.comment ? '<div class="q-sub">“' + esc(r.comment) + '”</div>' : '') + '</div>';
+}
+function counts() {
+  const c = { all: 0 }; const add = b => { b = b || 'rvltn'; c[b] = (c[b] || 0) + 1; c.all++; };
+  (D.items || []).filter(i => !HIDDEN.has(ikey(i))).forEach(i => add(i.business)); (D.batches || []).filter(b => !HIDDEN.has('b:' + b.batch_id)).forEach(b => add(b.business));
+  return c;
+}
+function renderChips() {
+  const c = counts(); let h = '<button type="button" class="fc' + (BF === 'all' ? ' on' : '') + '" data-bf="all">All' + (c.all ? ' <b>' + c.all + '</b>' : '') + '</button>';
+  BIZ_ORDER.forEach(k => { if (c[k] || BF === k) h += '<button type="button" class="fc' + (BF === k ? ' on' : '') + '" data-bf="' + k + '">' + esc(BIZ[k].short) + (c[k] ? ' <b>' + c[k] + '</b>' : '') + '</button>'; });
+  $('#fchips').innerHTML = h;
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.tab === TAB));
 }
 function renderAll() {
   if (!D) return;
-  CARDS = buildCards();
+  CARDS = TAB === 'open' ? buildCards() : [];
   if (!FOCUS || !CARDS.some(c => c.key === FOCUS)) FOCUS = CARDS.length ? CARDS[0].key : null;
-  const n = CARDS.reduce((a, c) => a + (c.type === 'group' ? c.items.length : 1), 0);
-  document.title = (n ? '(' + n + ') ' : '') + 'Talos — Needs you';
-  if (window.setNavBadge) window.setNavBadge(n);
-  $('#subtitle').textContent = n ? n + (n === 1 ? ' thing is' : ' things are') + ' waiting on you' : 'Nothing waiting';
+  const total = counts().all;
+  document.title = (total ? '(' + total + ') ' : '') + 'Talos — Needs you';
+  if (window.setNavBadge) window.setNavBadge(total);
+  renderChips();
   let h = '';
-  if (CARDS.length) {
-    h += '<div class="hint touch">Swipe right to approve, left to request changes.</div><div class="hint keys">J / K move · A approve · C changes · 1–4 options · E expand · U undo</div>';
-    h += CARDS.map(c => c.type === 'group' ? renderGroup(c) : c.type === 'batch' ? renderBatch(c) : renderItem(c)).join('');
+  if (TAB === 'history') {
+    const hist = (D.history || []).filter(inBF);
+    $('#subtitle').textContent = 'Done and dismissed, last 30 days';
+    h += hist.length ? hist.map(histRow).join('') : '<div class="empty"><h2>No history yet</h2><p>Finished and dismissed items show up here.</p></div>';
   } else {
-    const nx = D.next_scheduled;
-    h += '<div class="empty"><h2>You’re all caught up</h2><p>' + (nx ? 'Next up: ' + esc(nx.label) + ' · ' + esc(botName(nx.source)) + ', ' + esc(new Date(nx.at).toLocaleString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' })) : 'Nothing is scheduled yet.') + '</p></div>';
-  }
-  const rec = (D.recent || []).filter(r => !HIDDEN.has('w:' + r.source + ':' + r.week_of + ':' + r.item_id));
-  const mine = PEND.map(p => '<div class="rec"><div class="t">' + esc(p.label) + '</div><div class="m"><span class="pill">Sending in a moment — Undo</span></div></div>').join('');
-  if (rec.length || mine) {
-    h += '<div class="sec">Sent</div>' + mine + rec.map(r => '<div class="rec"><div class="t">' + esc(r.text.length > 140 ? r.text.slice(0, 140) + '…' : r.text) + '</div><div class="m">' + chip(r.source) + '<span>' + esc(decisionText(r)) + '</span>' + statusPill(r) + '</div>' + (r.comment ? '<div class="q-sub">“' + esc(r.comment) + '”</div>' : '') + '</div>').join('');
+    const n = CARDS.reduce((a, c) => a + (c.type === 'group' ? c.items.length : 1), 0);
+    $('#subtitle').textContent = n ? n + (n === 1 ? ' thing is' : ' things are') + ' waiting on you' + (BF !== 'all' ? ' in ' + BIZ[BF].name : '') : 'Nothing waiting';
+    if (CARDS.length) {
+      h += '<div class="hint touch">Swipe right to approve, left to request changes.</div><div class="hint keys">J / K move · A approve · C changes · 1–4 options · E expand · U undo</div>';
+      h += CARDS.map(c => c.type === 'group' ? renderGroup(c) : c.type === 'batch' ? renderBatch(c) : renderItem(c)).join('');
+    } else {
+      const nx = D.next_scheduled;
+      h += '<div class="empty"><h2>' + (BF === 'all' ? 'You’re all caught up' : 'Nothing waiting here') + '</h2><p>' + (BF !== 'all' ? 'No open items for ' + esc(BIZ[BF].name) + '.' : nx ? 'Next up: ' + esc(nx.label) + ' · ' + esc(nx.source === 'talos' ? 'Schedule' : botName(nx.source)) + ', ' + esc(new Date(nx.at).toLocaleString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' })) : 'Nothing is scheduled yet.') + '</p></div>';
+    }
+    const rec = (D.recent || []).filter(r => inBF(r) && !HIDDEN.has('w:' + r.source + ':' + r.week_of + ':' + r.item_id));
+    const mine = PEND.map(p => '<div class="rec"><div class="t">' + esc(p.label) + '</div><div class="m"><span class="pill">Sending in a moment — Undo</span></div></div>').join('');
+    if (rec.length || mine) h += '<div class="sec">In progress</div>' + mine + rec.map(histRow).join('');
   }
   const active = document.activeElement && document.activeElement.matches && document.activeElement.matches('input[data-note]') ? document.activeElement.value : null;
   $('#root').innerHTML = h;
@@ -204,7 +229,12 @@ function act(a, key, el) {
   if (a === 'opt') return sendItem(it, 'option:' + el.dataset.opt, null, 'Chose ' + ((it.options || []).find(o => o.id === el.dataset.opt) || {}).label);
   if (a === 'dismiss') return sendItem(it, 'dismiss', null, 'Skipped');
 }
-document.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && !b.disabled) act(b.dataset.act, b.dataset.key, b); });
+document.addEventListener('click', e => {
+  const cl = e.target.closest('.clamp'); if (cl) { cl.classList.toggle('open'); return; }
+  const t = e.target.closest('[data-tab]'); if (t) { TAB = t.dataset.tab; NOTE = null; renderAll(); return; }
+  const f = e.target.closest('[data-bf]'); if (f) { BF = f.dataset.bf; FOCUS = null; NOTE = null; try { history.replaceState(null, '', BF === 'all' ? 'needs.html' : 'needs.html?b=' + BF); } catch (x) {} renderAll(); return; }
+  const b = e.target.closest('[data-act]'); if (b && !b.disabled) act(b.dataset.act, b.dataset.key, b);
+});
 $('#undoBtn').addEventListener('click', undo);
 
 /* ---- swipe ---- */
