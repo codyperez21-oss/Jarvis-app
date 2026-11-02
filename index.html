@@ -247,7 +247,7 @@
   <div class="day-stats">
     <div class="stat"><div class="stat-num" id="statSessions">—</div><div class="stat-label">Sessions Today</div></div>
     <div class="stat"><div class="stat-num" id="statFocus">—</div><div class="stat-label">Needs You</div></div>
-    <div class="stat"><div class="stat-num" id="statFirst">—</div><div class="stat-label">First Up</div></div>
+    <div class="stat"><div class="stat-num" id="statRev">—</div><div class="stat-label">Week Revenue</div></div>
   </div>
   <div class="chips">
     <div class="chip-btn" onclick="openRevenueModal()"><svg viewBox="0 0 16 16"><path d="M2 13V3M2 13h12M5 10l3-3 2 2 4-5"/></svg>Revenue</div>
@@ -290,7 +290,7 @@
 </div>
 
 <main>
-  <div id="botStrip"></div>
+  <div id="bizHome"></div>
   <div id="needsYou">
     <div class="section-label">Needs you</div>
     <div class="focus-stack" id="focusStack"></div>
@@ -529,7 +529,7 @@ async function loadDashboard() {
     maybeShowWeeklyReview(data.weeklyReview, data.weeklyReviewDate);
 
     document.getElementById('statSessions').textContent = data.sessionCount ?? 0;
-    document.getElementById('statFirst').textContent = data.timeline && data.timeline[0] ? fmtTime(data.timeline[0].time) : '—';
+    /* First Up stat replaced by week revenue (home-business.js) */
 
     if (data.quote && data.quote.quote) {
       const toneLabels = { calm: 'A moment of calm', motivate: 'Today\'s push', focus: 'Stay the course' };
@@ -1127,7 +1127,7 @@ function updateNeedsYou() {
   const c = window.nyCounts;
   const total = c.focus + c.confirmations + c.pipeline;
   document.getElementById('needsYou').style.display = (total > 0 || window.nyError) ? 'block' : 'none';
-  document.getElementById('statFocus').textContent = total;
+  window.__oldNeeds = total; if (window.updateNeedsStat) window.updateNeedsStat(); else document.getElementById('statFocus').textContent = total;
 }
 // Strip stray emoji glyphs that legacy strings still produce (no-emoji rule)
 (function () {
@@ -1323,6 +1323,6 @@ document.getElementById('newConvoBtn').addEventListener('click', () => {
 </nav>
 
 <div id="talosNav"></div><script src="talos-nav.js"></script>
-<script src="home-strip.js"></script>
+<script src="home-business.js"></script>
 </body>
 </html>
