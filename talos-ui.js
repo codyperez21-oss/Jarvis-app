@@ -1,6 +1,10 @@
 const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
 const BASE = "https://affable-chachalaca.pikapod.net/webhook/";
-const BOT = { pheme:'Pheme', endeavour:'Endeavour', apollo:'Apollo', hermes:'Hermes' };
+const BOT = { pheme:'Pheme', endeavour:'Endeavour', apollo:'Apollo', hermes:'Hermes', demeter:'Demeter', tyche:'Tyche', talos:'Talos' };
+const ROLE = { pheme:'social', hermes:'coordinator', apollo:'outreach', endeavour:'YouTube', demeter:'outreach', tyche:'trading', talos:'Talos data' };
+const BIZ = { rvltn:{ name:'RVLTN Performance', short:'RVLTN' }, replete:{ name:'Replete RX', short:'Replete RX' }, youtube:{ name:'Boardroom Autopsy', short:'YouTube' }, trading:{ name:'Trading', short:'Trading' }, nido:{ name:'Nido', short:'Nido' } };
+const BIZ_ORDER = ['rvltn', 'replete', 'youtube', 'trading', 'nido'];
+const UPA = String.fromCharCode(9650), DNA = String.fromCharCode(9660), DASH = String.fromCharCode(8212), MID = String.fromCharCode(183);
 const botName = s => BOT[s] || s;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 async function api(path, opts) {
@@ -41,5 +45,28 @@ function md(src) {
 function fmtWeek(iso) { return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
 function safeUrl(u) { return /^https?:\/\//i.test(u || '') ? esc(u) : ''; }
 function headlineOf(b) { const k = Object.keys(b.metrics || {}); const h = b.headline && (b.metrics || {})[b.headline] != null ? b.headline : k[0]; return h; }
-function tileHtml(label, val, prev) { const d = fmtDelta(val, prev); return '<div class="tile"><div class="tile-v">' + esc(val) + '</div><div class="tile-l">' + esc(label) + '</div>' + (d ? '<div class="tile-d">' + esc(d) + '</div>' : '') + '</div>'; }
+const bizShort = b => (BIZ[b] || {}).short || '';
+const bizTag = b => BIZ[b] ? '<span class="bz">' + esc(BIZ[b].short) + '</span>' : '';
+function fmtVal(v, unit) {
+  if (v == null || v === '') return DASH;
+  if (typeof v === 'number') { if (!isFinite(v)) return DASH; return unit === 'usd' ? '$' + Math.round(v).toLocaleString('en-US') : (Math.round(v * 100) / 100).toLocaleString('en-US'); }
+  const n = Number(v); if (typeof v === 'string' && v.trim() !== '' && isFinite(n)) return fmtVal(n, unit);
+  return String(v);
+}
+function deltaInfo(cur, prev, unit) {
+  const c = typeof cur === 'string' && cur.trim() !== '' ? Number(cur) : cur, p = typeof prev === 'string' && prev.trim() !== '' ? Number(prev) : prev;
+  if (typeof c !== 'number' || !isFinite(c)) return { cls: 'd-na', txt: '' };
+  if (typeof p !== 'number' || !isFinite(p)) return { cls: 'd-na', txt: 'no prior week' };
+  const d = c - p; if (d === 0) return { cls: 'd-na', txt: 'no change vs last week' };
+  const amt = unit === 'usd' ? '$' + Math.round(Math.abs(d)).toLocaleString('en-US') : +Math.abs(d).toFixed(2);
+  return { cls: d > 0 ? 'd-up' : 'd-dn', txt: (d > 0 ? UPA + ' +' : DNA + ' -') + amt + ' vs last week' };
+}
+function deltaHtml(cur, prev, unit) { const x = deltaInfo(cur, prev, unit); return x.txt ? '<span class="' + x.cls + '">' + esc(x.txt) + '</span>' : ''; }
+function tileHtml(label, val, prev, unit) { const x = deltaInfo(val, prev, unit); return '<div class="tile"><div class="tile-v">' + esc(fmtVal(val, unit)) + '</div><div class="tile-l">' + esc(label) + '</div>' + (x.txt ? '<div class="tile-d ' + x.cls + '">' + esc(x.txt) + '</div>' : '') + '</div>'; }
+function numHtml(n) {
+  const pts = (n.points || []).filter(p => p.value != null);
+  return '<div class="num"><div class="num-h"><span class="num-l">' + esc(n.label) + '</span><span class="num-v">' + esc(fmtVal(n.value, n.unit)) + '</span></div><div class="num-d">' + deltaHtml(n.value, n.prev, n.unit) + '</div>' +
+    (pts.length > 1 ? spark(pts, 200, 44) + '<div class="srs-f"><span>' + esc(pts[0].date) + '</span><span>' + esc(pts[pts.length - 1].date) + '</span></div>' : '<div class="num-s">' + (n.points ? 'Chart appears after a second week.' : '') + '</div>') +
+    (n.source && ROLE[n.source] ? '<div class="num-s">' + esc(botName(n.source)) + ' ' + MID + ' ' + esc(ROLE[n.source]) + '</div>' : '') + '</div>';
+}
 function seriesHtml(ss) { return (ss || []).map(s => { const p = (s.points || []); if (!p.length) return ''; const last = p[p.length - 1]; return '<div class="srs"><div class="srs-h"><span>' + esc(s.label) + '</span><b>' + esc(last.value) + '</b></div>' + spark(p, 200, 44) + '<div class="srs-f"><span>' + esc(p[0].date) + '</span><span>' + esc(last.date) + '</span></div></div>'; }).join(''); }
