@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Talos — Numbers</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="talos-ui.css">
+</head>
+<body>
+<header class="top"><div class="eyebrow">Talos</div><h1>Numbers</h1><div class="sub" id="sub">&nbsp;</div></header>
+<main id="root"><div class="sk"></div><div class="sk"></div></main>
+<div id="talosNav"></div>
+<script src="talos-ui.js"></script>
+<script>
+let OPEN = {};
+const ORDER = ['pheme', 'endeavour', 'apollo', 'hermes'];
+const ROLE = { pheme:'Social media', endeavour:'YouTube', apollo:'Replete RX outreach', hermes:'Coordinator' };
+function card(src, b) {
+  if (!b) return '<div class="card"><div class="card-h" style="cursor:default"><div class="t"><b>' + esc(botName(src)) + '</b><span>No report yet</span></div></div></div>';
+  const hl = headlineOf(b), keys = Object.keys(b.metrics || {}), pm = b.prev_metrics || {};
+  const ser = (b.metrics_series || []); const main = ser.find(s => s.label === hl) || ser[0];
+  const head = hl ? '<div class="head-tile"><div><div class="big">' + esc(b.metrics[hl]) + '</div><div class="lbl">' + esc(hl) + '</div></div></div>' + (fmtDelta(b.metrics[hl], pm[hl]) ? '<div class="tile-d" style="margin-top:6px">' + esc(fmtDelta(b.metrics[hl], pm[hl])) + '</div>' : '') + (main ? spark(main.points, 200, 44) : '') : '<div class="sub">No numbers in this report.</div>';
+  const all = keys.length > 1 ? '<div class="tiles" style="margin-top:14px">' + keys.filter(k => k !== hl).map(k => tileHtml(k, b.metrics[k], pm[k])).join('') + '</div>' : '';
+  const more = ser.filter(s => s !== main).length ? seriesHtml(ser.filter(s => s !== main)) : '';
+  const open = !!OPEN[src];
+  return '<div class="card' + (open ? ' open' : '') + '"><button class="card-h" data-b="' + esc(src) + '"><div class="t"><b>' + esc(botName(src)) + '</b><span>' + esc(ROLE[src] || '') + ' · week of ' + esc(fmtWeek(b.week_of)) + '</span></div><span class="chev">▶</span></button><div style="padding:0 16px 16px">' + head + '</div>' + (all || more ? '<div class="card-b">' + all + more + '</div>' : '') + '</div>';
+}
+function render(d) {
+  const by = {}; (d.bots || []).forEach(b => { by[b.source] = b; });
+  const w = (d.bots || []).map(b => b.week_of).sort().pop();
+  document.getElementById('sub').textContent = w ? 'Latest reports · week of ' + fmtWeek(w) : 'No reports yet';
+  document.getElementById('root').innerHTML = ORDER.map(s => card(s, by[s])).join('');
+}
+document.addEventListener('click', e => { const h = e.target.closest('.card-h[data-b]'); if (h) { OPEN[h.dataset.b] = !OPEN[h.dataset.b]; h.parentElement.classList.toggle('open', OPEN[h.dataset.b]); } });
+api('numbers-overview').then(render).catch(e => { document.getElementById('root').innerHTML = '<div class="err">Couldn’t load: ' + esc(e.message) + '</div>'; });
+</script>
+<script src="talos-nav.js"></script>
+</body>
+</html>
