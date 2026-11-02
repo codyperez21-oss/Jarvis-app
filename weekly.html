@@ -70,6 +70,19 @@
   .handled { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); margin-top:8px; line-height:1.6; }
   .empty { font-family:'DM Mono',monospace; font-size:12px; color:var(--gray); padding:14px 0; }
   .error-note { font-family:'DM Mono',monospace; font-size:12px; color:var(--red); padding:14px 0; }
+  .cmt { width:100%; margin-top:8px; background:#0c0c0c; color:var(--white); border:1px solid var(--border); border-radius:8px; padding:9px 10px; font-family:'DM Sans',sans-serif; font-size:13px; }
+  .need-act { flex-wrap:wrap; }
+  .btn.muted { border-color:var(--border); color:var(--gray); }
+  .stat { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.05em; text-transform:uppercase; border-radius:4px; padding:3px 7px; border:1px solid var(--border); color:var(--gray); }
+  .stat.done { color:var(--green); border-color:#2d6644; } .stat.failed { color:var(--red); border-color:#5a2d2d; } .stat.prog { color:var(--amber); border-color:#6b4a1a; }
+  .hrow { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-top:8px; font-size:13px; line-height:1.4; }
+  .hrow .hmeta { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px; font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+  .fail-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--red); margin-top:6px; }
+  .delta { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:4px; }
+  .spark { background:var(--card-raised); border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:8px; }
+  .spark-h, .spark-f { display:flex; justify-content:space-between; font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); }
+  .spark-h span:last-child { color:var(--gold); font-size:12px; }
+  .spark svg { width:100%; height:44px; display:block; margin:6px 0 2px; }
 </style>
 </head>
 <body>
@@ -142,13 +155,28 @@ async function loadWeek(week) {
 function stepWeek(dir) { // dir 1 = older, -1 = newer (weeks list is newest first)
   if (!DATA) return; const i = DATA.weeks.indexOf(DATA.week_of); const n = DATA.weeks[i + dir]; if (n) loadWeek(n);
 }
-function tiles(m) {
+function delta(cur, prev) {
+  if (typeof cur !== 'number' || typeof prev !== 'number') return '';
+  const d = cur - prev; if (d === 0) return '<div class="delta">no change vs last week</div>';
+  const pct = prev !== 0 ? ' (' + (d > 0 ? '+' : '') + Math.round(d / Math.abs(prev) * 100) + '%)' : '';
+  return '<div class="delta">' + (d > 0 ? '▲ +' : '▼ ') + esc(+d.toFixed(2)) + pct + ' vs last week</div>';
+}
+function tiles(m, prev) {
   const keys = Object.keys(m || {}); if (!keys.length) return '';
-  return '<div class="tiles">' + keys.map(k => '<div class="tile"><div class="tile-v">' + esc(m[k]) + '</div><div class="tile-l">' + esc(k) + '</div></div>').join('') + '</div>';
+  return '<div class="tiles">' + keys.map(k => '<div class="tile"><div class="tile-v">' + esc(m[k]) + '</div><div class="tile-l">' + esc(k) + '</div>' + delta(m[k], (prev || {})[k]) + '</div>').join('') + '</div>';
+}
+function series(ss) {
+  return (ss || []).map(s => {
+    const p = (s.points || []).slice().sort((a, b) => a.date < b.date ? -1 : 1); const v = p.map(x => Number(x.value)).filter(x => isFinite(x));
+    if (v.length < 1) return '';
+    const mn = Math.min(...v), mx = Math.max(...v), rg = (mx - mn) || 1;
+    const pts = v.map((y, i) => ((v.length === 1 ? 100 : 2 + (i / (v.length - 1)) * 196)).toFixed(1) + ',' + (40 - ((y - mn) / rg) * 34).toFixed(1)).join(' ');
+    return '<div class="spark"><div class="spark-h"><span>' + esc(s.label) + '</span><span>' + esc(v[v.length - 1]) + '</span></div><svg viewBox="0 0 200 44" preserveAspectRatio="none"><polyline points="' + pts + '" fill="none" stroke="#c9a84c" stroke-width="2" vector-effect="non-scaling-stroke"/></svg><div class="spark-f"><span>' + esc(p[0].date) + '</span><span>' + esc(p[p.length - 1].date) + '</span></div></div>';
+  }).join('');
 }
 function body(r) {
   const links = (r.links || []).filter(l => safeUrl(l.url));
-  return tiles(r.metrics) + '<div class="md">' + md(r.summary) + '</div>' +
+  return tiles(r.metrics, r.prev_metrics) + series(r.metrics_series) + '<div class="md">' + md(r.summary) + '</div>' +
     (links.length ? '<div class="links">' + links.map(l => '<a href="' + safeUrl(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>').join('') + '</div>' : '');
 }
 function missing(bot) {
@@ -170,18 +198,12 @@ function render() {
 
   const items = [];
   (DATA.reports || []).forEach(r => (r.action_items || []).forEach(a => items.push(Object.assign({ source: r.source }, a))));
-  const open = items.filter(a => !a.decision), handled = items.filter(a => a.decision);
+  const open = items.filter(a => !a.decision || a.status === 'failed'), handled = items.filter(a => a.decision && a.status !== 'failed');
   html += '<div class="sec">Needs you (' + open.length + ')</div>';
   if (!items.length) html += '<div class="empty">No action items this week.</div>';
   else if (!open.length) html += '<div class="empty">All handled.</div>';
-  open.forEach(a => {
-    const k = a.source + '|' + a.id;
-    html += '<div class="need" id="n-' + esc(k) + '"><div class="need-top"><span class="badge">' + esc(BOT_LABEL[a.source] || a.source) + '</span><span class="badge ' + (a.kind === 'approve' ? 'wait' : '') + '">' + esc(a.kind) + '</span></div>' +
-      '<div class="need-txt">' + esc(a.text) + '</div>' +
-      (a.kind === 'approve' ? '<div class="need-hint">Done here is only a note. Approve on the real screen' + (a.source === 'apollo' ? ': <a href="clinics.html">Clinics</a>' : '') + '.</div>' : '') +
-      '<div class="need-act"><div class="btn done" data-s="' + esc(a.source) + '" data-i="' + esc(a.id) + '" data-d="done" onclick="decide(this)">Done</div><div class="btn" data-s="' + esc(a.source) + '" data-i="' + esc(a.id) + '" data-d="dismissed" onclick="decide(this)">Dismiss</div></div></div>';
-  });
-  if (handled.length) html += '<div class="handled">Handled: ' + handled.map(a => esc(BOT_LABEL[a.source] || a.source) + ' · ' + esc(a.text.length > 50 ? a.text.slice(0, 50) + '…' : a.text) + ' (' + esc(a.decision) + ')').join('<br>') + '</div>';
+  open.forEach(a => { html += needHtml(a); });
+  if (handled.length) html += '<div class="sec">Handled</div>' + handled.map(handledHtml).join('');
 
   html += '<div class="sec">Reports</div>';
   BOTS.filter(b => b[0] !== 'hermes').forEach(b => {
@@ -191,15 +213,46 @@ function render() {
   });
   document.getElementById('root').innerHTML = html;
 }
+function optLabel(a, d) { const o = (a.options || []).find(x => 'option:' + x.id === d); return o ? o.label : d; }
+function decisionText(a) {
+  const d = a.decision;
+  if (d === 'approve') return 'Approved'; if (d === 'changes') return 'Changes requested'; if (d === 'dismiss') return 'Dismissed'; if (d === 'other') return 'Other';
+  return String(d || '').indexOf('option:') === 0 ? optLabel(a, d) : String(d || '');
+}
+function statusPill(a) {
+  const who = BOT_LABEL[a.source] || a.source, n = a.status_note ? ': ' + a.status_note : '';
+  if (a.status === 'done') return '<span class="stat done">Done' + esc(n) + '</span>';
+  if (a.status === 'failed') return '<span class="stat failed">Failed' + esc(n) + '</span>';
+  if (a.status === 'in_progress') return '<span class="stat prog">In progress' + esc(n) + '</span>';
+  return '<span class="stat">Sent to ' + esc(who) + '</span>';
+}
+function handledHtml(a) {
+  return '<div class="hrow"><div>' + esc(a.text) + '</div><div class="hmeta"><span class="badge">' + esc(BOT_LABEL[a.source] || a.source) + '</span><span>' + esc(decisionText(a)) + '</span>' + statusPill(a) + '</div>' + (a.comment ? '<div class="need-hint">“' + esc(a.comment) + '”</div>' : '') + '</div>';
+}
+function needHtml(a) {
+  const s = esc(a.source), i = esc(a.id);
+  const B = (d, l, c) => '<div class="btn ' + (c || '') + '" data-s="' + s + '" data-i="' + i + '" data-d="' + esc(d) + '" onclick="decide(this)">' + esc(l) + '</div>';
+  let btns = '';
+  if (a.kind === 'approve') btns = B('approve', 'Approve', 'done') + B('changes', 'Request changes');
+  else if (a.kind === 'decide') btns = (a.options || []).map(o => B('option:' + o.id, o.label)).join('') + B('other', 'Other…');
+  btns += B('dismiss', 'Dismiss', 'muted');
+  const hint = a.kind === 'approve' && a.source === 'apollo' ? '<div class="need-hint">Clinic batches are approved on <a href="clinics.html">Clinics</a>. This only tells Hermes your answer.</div>' : '';
+  const fail = a.status === 'failed' ? '<div class="fail-note">Last attempt failed' + esc(a.status_note ? ': ' + a.status_note : '') + '. Decide again to retry.</div>' : '';
+  const cmt = a.kind === 'fyi' ? '' : '<input class="cmt" maxlength="1000" placeholder="' + (a.kind === 'decide' ? 'Comment (required for Other)' : 'Comment (optional)') + '">';
+  return '<div class="need"><div class="need-top"><span class="badge">' + esc(BOT_LABEL[a.source] || a.source) + '</span><span class="badge ' + (a.kind === 'approve' ? 'wait' : '') + '">' + esc(a.kind) + '</span></div><div class="need-txt">' + esc(a.text) + '</div>' + hint + fail + cmt + '<div class="need-act">' + btns + '</div></div>';
+}
 function toggle(b) { OPEN[b] = !OPEN[b]; const el = document.getElementById('c-' + b); if (el) el.classList.toggle('open', OPEN[b]); }
 async function decide(btn) {
-  const row = btn.closest('.need'); row.querySelectorAll('.btn').forEach(x => x.classList.add('dis'));
+  const row = btn.closest('.need'), inp = row.querySelector('.cmt'), comment = inp ? inp.value.trim() : '';
+  if (btn.dataset.d === 'other' && !comment) { alert('Add a comment so Hermes knows what you want.'); if (inp) inp.focus(); return; }
+  row.querySelectorAll('.btn').forEach(x => x.classList.add('dis'));
   try {
-    await api('weekly-decide', { method: 'POST', body: JSON.stringify({ source: btn.dataset.s, weekOf: DATA.week_of, itemId: btn.dataset.i, decision: btn.dataset.d }) });
+    await api('weekly-decide', { method: 'POST', body: JSON.stringify({ source: btn.dataset.s, weekOf: DATA.week_of, itemId: btn.dataset.i, decision: btn.dataset.d, comment: comment || null }) });
     await loadWeek(DATA.week_of);
   } catch (e) { row.querySelectorAll('.btn').forEach(x => x.classList.remove('dis')); alert('Couldn\'t save: ' + e.message); }
 }
 loadWeek(null);
+setInterval(() => { const a = document.activeElement; if (DATA && !document.hidden && !(a && a.tagName === 'INPUT')) loadWeek(DATA.week_of); }, 60000);
 </script>
 </body>
 </html>
