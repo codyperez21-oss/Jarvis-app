@@ -22,8 +22,8 @@
 <script src="talos-ui.js"></script>
 <script>
 let DATA = null, OPEN = {};
-const ORDER = ['pheme', 'endeavour', 'apollo'];
-const ROLE = { pheme:'Social media', endeavour:'YouTube', apollo:'Replete RX outreach' };
+const ORDER = ['pheme', 'apollo', 'endeavour'];
+const EXPECT = { pheme:'Social media', apollo:'Replete RX outreach', endeavour:'YouTube' };
 function decisionText(a) { const d = a.decision; if (d === 'approve') return 'Approved'; if (d === 'changes') return 'Changes requested'; if (d === 'dismiss') return 'Skipped'; if (d === 'other') return 'Your answer'; const o = (a.options || []).find(x => 'option:' + x.id === d); return o ? o.label : String(d); }
 function statusPill(a) { const n = a.status_note ? ': ' + a.status_note : ''; if (a.status === 'done') return '<span class="pill green">Done' + esc(n) + '</span>'; if (a.status === 'failed') return '<span class="pill red">Failed' + esc(n) + '</span>'; if (a.status === 'in_progress') return '<span class="pill amber">In progress' + esc(n) + '</span>'; return '<span class="pill amber">Sent to ' + esc(botName(a.source)) + '</span>'; }
 function itemsHtml(r) {
@@ -46,9 +46,10 @@ function render() {
   let h = waiting ? '<a class="banner" href="needs.html"><b>' + waiting + (waiting === 1 ? ' item needs' : ' items need') + ' you</b><span>Open ›</span></a>' : '';
   const hm = by.hermes;
   h += '<div class="sec">Summary</div><div class="card"><div style="padding:16px"><div class="q-top">' + chip('hermes') + (hm ? '' : missing()) + '</div>' + (hm ? '<div style="font-weight:600;font-size:17px;margin:10px 0">' + esc(hm.title) + '</div><div class="md">' + md(hm.summary) + '</div>' : '<div class="sub" style="margin-top:8px">Hermes hasn’t posted this week’s summary.</div>') + '</div></div>';
-  h += '<div class="sec">Reports</div>' + ORDER.map(s => {
-    const r = by[s], open = !!OPEN[s];
-    return '<div class="card' + (open ? ' open' : '') + '"><button class="card-h" data-b="' + s + '"><div class="t"><b>' + esc(botName(s)) + '</b><span>' + (r ? esc(r.title) : esc(ROLE[s])) + '</span></div>' + (r ? '<span class="pill green">In</span>' : missing()) + '<span class="chev">▶</span></button><div class="card-b">' + (r ? body(r) : '<div class="sub">' + (DATA.deadline_passed ? 'Not in yet.' : 'Expected by 12:00 PM ET Sunday.') + '</div>') + '</div></div>';
+  const present = (DATA.reports || []).map(r => r.source).filter(s => s !== 'hermes'), srcs = present.concat(ORDER.filter(s => !present.includes(s)));
+  h += '<div class="sec">Reports by business</div>' + srcs.map(s => {
+    const r = by[s], open = !!OPEN[s], bz = r ? r.business : ({ pheme:'rvltn', apollo:'replete', endeavour:'youtube' })[s];
+    return '<div class="card' + (open ? ' open' : '') + '"><button class="card-h" data-b="' + esc(s) + '"><div class="t">' + (BIZ[bz] ? '<i class="bz" style="font-style:normal;display:block">' + esc(BIZ[bz].short) + '</i>' : '') + '<b>' + esc(botName(s)) + ' ' + MID + ' ' + esc(ROLE[s] || '') + '</b><span>' + (r ? esc(r.title) : esc(EXPECT[s] || '')) + '</span></div>' + (r ? '<span class="pill green">In</span>' : missing()) + '<span class="chev">' + String.fromCharCode(9654) + '</span></button><div class="card-b">' + (r ? body(r) : '<div class="sub">' + (DATA.deadline_passed ? 'Not in yet.' : 'Expected by 12:00 PM ET Sunday.') + '</div>') + '</div></div>';
   }).join('');
   document.getElementById('root').innerHTML = h;
 }
