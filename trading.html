@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script src="talos-auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="manifest" href="manifest.json">
@@ -132,7 +133,7 @@
 </nav>
 
 <script>
-const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+const API_KEY = (window.TalosAuth ? TalosAuth.key() : '');
 const TR_URL = "https://affable-chachalaca.pikapod.net/webhook/trading-overview";
 const TR_REFRESH_URL = "https://affable-chachalaca.pikapod.net/webhook/trading-refresh";
 const ET = "America/New_York";
