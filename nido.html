@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script src="talos-auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="manifest" href="manifest.json">
@@ -94,7 +95,7 @@
 
 <script>
 const NIDO_URL = "https://affable-chachalaca.pikapod.net/webhook/nido-data";
-const API_KEY = "cyl6IRJPD86l-1sK30UBZqOEElnBOWReItiGUk68Uck";
+const API_KEY = (window.TalosAuth ? TalosAuth.key() : '');
 
 const PHASE_LABELS = { deal_formation: "Deal Formation", build_launch: "Build & Launch" };
 const STATUS_LABELS = { pending: "Pending", in_progress: "In Progress", resolved: "Resolved" };
