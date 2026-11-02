@@ -225,9 +225,9 @@
   /* B4: quote lives at the bottom now */
   .quote-block { margin:34px 0 0; }
   /* B5: Tell Talos bottom sheet */
-  .sheet-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:110; }
+  .sheet-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9100; }
   .sheet-overlay.open { display:block; }
-  .chat-panel { position:fixed; left:0; right:0; bottom:var(--vvb, 0px); z-index:120; margin:0 auto; max-width:640px; max-height:min(82vh, 82dvh, calc(var(--vvh, 100vh) - 12px)); display:flex; flex-direction:column; border:1px solid var(--border); border-bottom:none; border-radius:16px 16px 0 0; background:var(--black); transform:translateY(105%); visibility:hidden; transition:transform 0.22s ease, visibility 0s linear 0.22s; padding-bottom:env(safe-area-inset-bottom, 0px); }
+  .chat-panel { position:fixed; left:0; right:0; bottom:var(--vvb, 0px); z-index:9200; margin:0 auto; max-width:640px; max-height:min(82vh, 82dvh, calc(var(--vvh, 100vh) - 12px)); display:flex; flex-direction:column; border:1px solid var(--border); border-bottom:none; border-radius:16px 16px 0 0; background:var(--black); transform:translateY(105%); visibility:hidden; transition:transform 0.22s ease, visibility 0s linear 0.22s; padding-bottom:env(safe-area-inset-bottom, 0px); }
   .chat-panel.open { transform:translateY(0); visibility:visible; transition:transform 0.22s ease, visibility 0s; }
   .chat-panel-label { display:flex; justify-content:space-between; align-items:center; font-size:11px; }
   .chat-panel-label span { padding:10px 4px; }
