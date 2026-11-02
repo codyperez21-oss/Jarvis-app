@@ -4,10 +4,10 @@
     '#talosNav .tn-bar{display:flex;border-top:1px solid #2a2a2a;background:#0e0e0e;padding:6px 4px calc(10px + env(safe-area-inset-bottom,0px))}' +
     '#talosNav .tn-it{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-decoration:none;background:none;border:0;cursor:pointer;position:relative;font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}' +
     '#talosNav .tn-dot{width:12px;height:12px;border-radius:50%;background:#9a968e;display:block}' +
-    '#talosNav .tn-on .tn-dot{background:#9b6bd6}' +
+    '#talosNav .tn-on .tn-dot{background:#c9a84c}' +
     '#talosNav .tn-lb{font-family:"DM Mono",monospace;font-size:11px;color:#9a968e}' +
-    '#talosNav .tn-on .tn-lb{color:#9b6bd6}' +
-    '#talosNav .tn-bd{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#9b6bd6;color:#fff;font:600 11px "DM Mono",monospace;display:none;align-items:center;justify-content:center}' +
+    '#talosNav .tn-on .tn-lb{color:#c9a84c}' +
+    '#talosNav .tn-bd{position:absolute;top:0;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#c9a84c;color:#0a0a0a;font:600 11px "DM Mono",monospace;display:none;align-items:center;justify-content:center}' +
     '#talosNav .tn-bd.show{display:flex}' +
     '#talosNav .tn-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:-1}' +
     '#talosNav .tn-bg.show{display:block}' +
@@ -19,7 +19,7 @@
   var p = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
   var more = ['clients.html', 'clinics.html', 'trading.html', 'nido.html', 'recovery-watch.html'];
   var items = [['index.html', 'Home'], ['needs.html', 'Needs you'], ['numbers.html', 'Numbers'], ['weekly.html', 'Review']];
-  var on = more.indexOf(p) >= 0 ? 'more' : (p === '' ? 'index.html' : p);
+  var on = more.indexOf(p) >= 0 ? 'more' : (p === '' || p === 'business.html' ? 'index.html' : p);
   var h = '<div class="tn-bg" id="tnBg"></div><div class="tn-sh" id="tnSh"><a href="clients.html">Clients</a><a href="clinics.html">Clinics</a><a href="trading.html">Trading</a><a href="nido.html">Nido</a></div><nav class="tn-bar">';
   items.forEach(function (x) { h += '<a class="tn-it' + (on === x[0] ? ' tn-on' : '') + '" href="' + x[0] + '"><i class="tn-dot"></i><span class="tn-lb">' + x[1] + '</span>' + (x[0] === 'needs.html' ? '<b class="tn-bd" id="tnBd"></b>' : '') + '</a>'; });
   h += '<button type="button" class="tn-it' + (on === 'more' ? ' tn-on' : '') + '" id="tnMore"><i class="tn-dot"></i><span class="tn-lb">More</span></button></nav>';
