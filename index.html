@@ -235,6 +235,7 @@
   .chat-panel-label, #chatInputRow { flex-shrink:0; }
   #chatInput { font-size:16px; }
   .kb-open .chat-panel { padding-bottom:0; }
+  @media (pointer:coarse) { .chat-panel { top:calc(env(safe-area-inset-top, 0px) + 8px); bottom:auto; max-height:46vh; border-radius:0 0 16px 16px; border:1px solid var(--border); border-top:none; padding-bottom:0; transform:translateY(-115%); } .chat-panel.open { transform:translateY(0); } }
   .chat-panel.typing { top:calc(env(safe-area-inset-top, 0px) + 8px); bottom:auto; max-height:min(52vh, calc(var(--vvh, 100vh) - 16px)); border-bottom:1px solid var(--border); border-radius:16px; padding-bottom:0; }
   .fab { z-index:60; }
   /* B11 tap targets */
