@@ -2,7 +2,7 @@ const API_KEY = (window.TalosAuth ? TalosAuth.key() : '');
 const BASE = "https://affable-chachalaca.pikapod.net/webhook/";
 const BOT = { pheme:'Pheme', endeavour:'Endeavour', apollo:'Apollo', hermes:'Hermes', demeter:'Demeter', tyche:'Tyche', talos:'Talos' };
 const ROLE = { pheme:'social', hermes:'coordinator', apollo:'outreach', endeavour:'YouTube', demeter:'outreach', tyche:'trading', talos:'Talos data' };
-const BIZ = { rvltn:{ name:'RVLTN Performance', short:'RVLTN' }, replete:{ name:'Replete RX', short:'Replete RX' }, youtube:{ name:'Boardroom Autopsy', short:'YouTube' }, trading:{ name:'Trading', short:'Trading' }, nido:{ name:'Nido', short:'Nido' } };
+const BIZ = { rvltn:{ name:'RVLTN Performance', short:'RVLTN' }, replete:{ name:'Replete RX', short:'Replete RX' }, youtube:{ name:'White Collar Docket', short:'YouTube' }, trading:{ name:'Trading', short:'Trading' }, nido:{ name:'Nido', short:'Nido' } };
 const BIZ_ORDER = ['rvltn', 'replete', 'youtube', 'trading', 'nido'];
 const UPA = String.fromCharCode(9650), DNA = String.fromCharCode(9660), DASH = String.fromCharCode(8212), MID = String.fromCharCode(183);
 const botName = s => BOT[s] || s;
