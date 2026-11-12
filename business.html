@@ -25,10 +25,10 @@ function dueLabel(i) { if (!i.due_at) return ''; const t = Date.parse(i.due_at.l
 function when(at) { const t = new Date(at); return isNaN(t) ? '' : t.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' }); }
 function statusPill(r) { if (r.status === 'in_progress') return '<span class="pill amber">In progress</span>'; return '<span class="pill amber">Sent to ' + esc(botName(r.source)) + '</span>'; }
 function section(d) {
-  const items = d.items || [], batches = d.batches || [], rec = d.recent || [];
+  const items = d.items || [], batches = d.batches || [], rec = d.recent || [], sb = d.social_batches || [];
   let h = '<div class="sec" style="margin-top:8px">Needs you</div>';
-  if (!items.length && !batches.length) h += '<div class="sub" style="padding:6px 0">Nothing waiting on you here.</div>';
-  else h += '<div class="card" style="padding:4px 16px">' + batches.map(b => '<a class="row" href="needs.html?b=' + esc(BID) + '"><span class="t">Approve ' + esc(b.count) + ' outreach emails</span><span class="pill amber">Review</span></a>').join('') +
+  if (!items.length && !batches.length && !sb.length) h += '<div class="sub" style="padding:6px 0">Nothing waiting on you here.</div>';
+  else h += '<div class="card" style="padding:4px 16px">' + sb.map(b => '<a class="row" href="needs.html?b=social"><span class="t">Approve ' + esc(b.count) + ' social actions</span><span class="pill amber">Review</span></a>').join('') + batches.map(b => '<a class="row" href="needs.html?b=' + esc(BID) + '"><span class="t">Approve ' + esc(b.count) + ' outreach emails</span><span class="pill amber">Review</span></a>').join('') +
     items.map(i => { const dl = dueLabel(i); return '<a class="row" href="needs.html?b=' + esc(BID) + '"><span class="t">' + esc(i.text) + '<br>' + chip(i.source) + '</span>' + (dl ? '<span class="pill ' + (dl === 'Overdue' ? 'red' : 'amber') + '">' + esc(dl) + '</span>' : '<span class="pill amber">Review</span>') + '</a>'; }).join('') + '</div>';
   if (rec.length) h += '<div class="sec">In progress</div><div class="card" style="padding:4px 16px">' + rec.map(r => '<div class="row" style="display:flex"><span class="t">' + esc(r.text) + '</span>' + statusPill(r) + '</div>').join('') + '</div>';
   const up = (d.upcoming || []).slice().sort((a, b) => new Date(a.at) - new Date(b.at));
