@@ -34,7 +34,7 @@
   if (p !== 'needs.html') {
     var c = new AbortController(); setTimeout(function () { c.abort(); }, 8000);
     fetch(BASE + 'needs-overview', { headers: { 'X-Api-Key': KEY }, signal: c.signal }).then(function (r) { return r.json(); }).then(function (d) {
-      var n = (d.items || []).length + (d.batches || []).length; window.__needsCount = n; window.setNavBadge(n);
+      var n = (d.items || []).length + (d.batches || []).length + (d.social_batches || []).length; window.__needsCount = n; window.setNavBadge(n);
     }).catch(function () {});
   }
 })();
