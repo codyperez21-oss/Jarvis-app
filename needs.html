@@ -60,6 +60,7 @@ function buildCards() {
   });
   items.forEach(i => { if (!grouped.has(ikey(i))) cards.push({ type:'item', key:ikey(i), item:i, due:dueMs(i), age:Date.parse(i.report_updated_at) || 0 }); });
   (D.batches || []).filter(b => !HIDDEN.has('b:' + b.batch_id) && inBF(b)).forEach(b => cards.push({ type:'batch', key:'b:' + b.batch_id, batch:b, due:Infinity, age:Date.parse(b.created_at) || 0 }));
+  (D.social_batches || []).filter(b => !HIDDEN.has('s:' + b.batch_id) && inBF(b)).forEach(b => cards.push({ type:'social', key:'s:' + b.batch_id, batch:b, due:Date.parse(b.expires_at) || Infinity, age:Date.parse(b.created_at) || 0 }));
   cards.sort((a, b) => (a.due - b.due) || (a.age - b.age));
   return cards;
 }
@@ -110,6 +111,81 @@ function renderBatch(c) {
     '<div class="drafts' + (open ? ' show' : '') + '">' + drafts + '</div>' +
     '<div class="q-act"><button type="button" class="btn primary" data-act="approve-batch" data-key="' + esc(k) + '"' + (open ? '' : ' disabled') + '>' + (open ? 'Approve ' + n : 'Read the emails to approve') + '</button><button type="button" class="btn" data-act="expand" data-key="' + esc(k) + '">' + (open ? 'Collapse' : 'Read all ' + n) + '</button><button type="button" class="btn ghost" data-act="skip-batch" data-key="' + esc(k) + '">Skip all</button></div></article>';
 }
+/* ---- social batches ---- */
+const SOC = {}, SOCNOTE = {};
+let SEDIT = null;
+const platL = p => ({ instagram:'Instagram', linkedin:'LinkedIn', threads:'Threads', x:'X', tiktok:'TikTok' })[p] || p;
+const actL = a => ({ comment:'Comment', reply:'Reply', connection_request:'Connection request', like:'Like', follow:'Follow' })[a] || a;
+const sSt = (b, n) => (SOC[b.batch_id] || {})[n] || { d:'approve' };
+function socLeft(ms) { const d = ms - Date.now(); if (!isFinite(d)) return ''; if (d <= 0) return 'Expired'; const h = Math.round(d / 3600000); return h < 1 ? 'Expires within the hour' : h < 48 ? 'Expires in ' + h + 'h' : 'Expires ' + new Date(ms).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }); }
+function socText(x, st) { return st.d === 'edit' ? st.text : (x.action === 'connection_request' ? x.connection_note : x.draft_text); }
+function socItem(b, x) {
+  const st = sSt(b, x.item_no), k = 's:' + b.batch_id, ek = b.batch_id + '|' + x.item_no, editing = SEDIT === ek, skipped = st.d === 'skip';
+  const txt = socText(x, st), url = safeUrl(x.target_url), da = ' data-key="' + esc(k) + '" data-item="' + esc(x.item_no) + '"';
+  let h = '<div class="draft" style="' + (skipped ? 'opacity:.5' : '') + '"><b>' + esc(platL(x.platform) + ' · ' + actL(x.action) + ' · ' + x.target_handle) + '</b>';
+  h += '<small>' + esc(x.target_display_name || '') + (url ? ' <a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color:inherit">open post</a>' : '') + '</small>';
+  if (x.target_context) h += '<div class="q-sub">' + esc(x.target_context) + '</div>';
+  if (x.parent_comment) h += '<div class="q-sub">Replying to: ' + esc(x.parent_comment) + '</div>';
+  if (x.prior_attempt) h += '<div class="q-sub">Earlier: ' + esc(x.prior_attempt) + '</div>';
+  if (editing) h += '<textarea data-sedit="' + esc(ek) + '" style="width:100%;min-height:96px;margin-top:8px;background:var(--raised);color:inherit;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:16px">' + esc(st.text || '') + '</textarea>';
+  else if (txt) h += '<pre>' + esc(txt) + '</pre>' + (st.d === 'edit' ? '<div class="q-sub">Edited by you</div>' : '');
+  h += '<div class="q-act" style="margin-top:8px">';
+  if (editing) h += '<button type="button" class="btn primary" data-act="soc-save"' + da + '>Save edit</button><button type="button" class="btn ghost" data-act="soc-cancel"' + da + '>Cancel</button>';
+  else {
+    h += skipped ? '<button type="button" class="btn" data-act="soc-inc"' + da + '>Include</button>' : '<button type="button" class="btn ghost" data-act="soc-skip"' + da + '>Skip</button>';
+    if (!skipped && x.action !== 'like' && x.action !== 'follow') h += '<button type="button" class="btn" data-act="soc-edit"' + da + '>Edit</button>';
+  }
+  return h + '</div></div>';
+}
+function renderSocial(c) {
+  const b = c.batch, k = c.key, open = !!EXPANDED[k], items = b.items || [], st = SOC[b.batch_id] || {};
+  const nSkip = items.filter(x => (st[x.item_no] || {}).d === 'skip').length, n = items.length - nSkip;
+  const peek = open ? '' : '<div class="q-prev">' + items.slice(0, 4).map(x => '• ' + esc(platL(x.platform) + ' ' + actL(x.action).toLowerCase() + ' · ' + x.target_handle + ((x.draft_text || x.connection_note) ? ' — ' + (x.draft_text || x.connection_note).slice(0, 90) : ''))).join('\n') + (items.length > 4 ? '\n+ ' + (items.length - 4) + ' more' : '') + '</div>';
+  const body = open ? items.map(x => socItem(b, x)).join('') + '<input type="text" maxlength="500" data-socnote="' + esc(b.batch_id) + '" value="' + esc(SOCNOTE[b.batch_id] || '') + '" placeholder="Note for Pheme (needed for Redraft, optional otherwise)" style="width:100%;margin-top:10px;min-height:44px;background:var(--raised);color:inherit;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;font-size:16px">' : '';
+  return '<article class="q' + (FOCUS === k ? ' focus' : '') + '" tabindex="0" data-key="' + esc(k) + '">' +
+    '<div class="q-top">' + chip('pheme') + bizTag('social') + '<span class="pill">Approval</span><span class="sp"></span><span class="pill amber">' + esc(socLeft(Date.parse(b.expires_at))) + '</span></div>' +
+    '<h3 class="q-title">Approve ' + items.length + ' social action' + (items.length === 1 ? '' : 's') + '</h3><div class="q-sub">' + esc(b.label || b.batch_id) + (c.age ? ' · ' + esc(ago(c.age)) : '') + ' · posts only after you approve</div>' + peek +
+    '<div class="drafts' + (open ? ' show' : '') + '">' + body + '</div>' +
+    '<div class="q-act"><button type="button" class="btn primary" data-act="soc-approve" data-key="' + esc(k) + '"' + (open ? '' : ' disabled') + '>' + (open ? 'Approve ' + n : 'Read all to approve') + '</button><button type="button" class="btn" data-act="expand" data-key="' + esc(k) + '">' + (open ? 'Collapse' : 'Review ' + items.length) + '</button>' +
+    (open ? '<button type="button" class="btn" data-act="soc-hold" data-key="' + esc(k) + '">Hold</button><button type="button" class="btn" data-act="soc-redraft" data-key="' + esc(k) + '">Redraft</button>' : '') +
+    '<button type="button" class="btn ghost" data-act="soc-reject" data-key="' + esc(k) + '">Skip batch</button></div></article>';
+}
+function socDecide(b, action, note) {
+  const st = SOC[b.batch_id] || {}, items = [], seen = {};
+  b.items.forEach(x => { seen[x.item_no] = x.draft_hash; const s = st[x.item_no]; if (s && s.d === 'skip') items.push({ item_no:x.item_no, decision:'skip' }); else if (s && s.d === 'edit') items.push({ item_no:x.item_no, decision:'edit', text:s.text }); });
+  const n = b.items.length - items.filter(i => i.decision === 'skip').length;
+  const label = action === 'approve' ? 'Approved ' + n + ' social action' + (n === 1 ? '' : 's') : action === 'hold' ? 'Held social batch' : 'Skipped social batch';
+  schedule('s:' + b.batch_id, label, () => api('social-batch-decide', { method:'POST', body: JSON.stringify({ batchId:b.batch_id, action, items: action === 'approve' ? items : [], note: note || null, seen }) }).then(r => { delete SOC[b.batch_id]; return r; }));
+}
+function socAct(a, key, el, card) {
+  if (!card) return;
+  const b = card.batch, id = b.batch_id, n = +el.dataset.item, note = (SOCNOTE[id] || '').trim();
+  SOC[id] = SOC[id] || {};
+  if (a === 'soc-skip') { SOC[id][n] = { d:'skip' }; SEDIT = null; return renderAll(); }
+  if (a === 'soc-inc') { delete SOC[id][n]; return renderAll(); }
+  if (a === 'soc-edit') { const x = b.items.find(i => i.item_no === n); SOC[id][n] = { d:'edit', text: socText(x, sSt(b, n)) || '' }; SEDIT = id + '|' + n; return renderAll(); }
+  if (a === 'soc-cancel') { delete SOC[id][n]; SEDIT = null; return renderAll(); }
+  if (a === 'soc-save') { const x = b.items.find(i => i.item_no === n), s = SOC[id][n], t = ((s && s.text) || '').trim(), orig = x.action === 'connection_request' ? x.connection_note : x.draft_text; if (!t) return toast('Edited text can’t be empty.'); if (t === orig) delete SOC[id][n]; else SOC[id][n] = { d:'edit', text:t }; SEDIT = null; return renderAll(); }
+  if (SEDIT && SEDIT.indexOf(id + '|') === 0) return toast('Save or cancel your edit first.');
+  if (a === 'soc-approve') { if (!EXPANDED[key]) return toast('Open the batch first so you can read it.'); const left = b.items.filter(x => (SOC[id][x.item_no] || {}).d !== 'skip').length; if (!left) return toast('Everything is skipped. Use Skip batch instead.'); return socDecide(b, 'approve', note); }
+  if (a === 'soc-hold') return socDecide(b, 'hold', note);
+  if (a === 'soc-redraft') { if (!note) return toast('Type what Pheme should change in the note box first.'); return socDecide(b, 'hold', 'REDRAFT: ' + note); }
+  if (a === 'soc-reject') return socDecide(b, 'reject', note);
+}
+function socRecent(b) {
+  const L = { approved:'Sent to Pheme', in_progress:'Posting', done:'Done', failed:'Failed', held:'Held', redraft:'Redraft requested', rejected:'Skipped', expired:'Expired' };
+  const cls = b.status === 'done' ? 'green' : (b.status === 'failed' || b.status === 'expired') ? 'red' : 'amber';
+  const lines = (b.approved > 0 || b.status === 'done') ? (b.items || []).map(x => {
+    let s;
+    if (x.decision === 'skip') s = 'Skipped by you'; else if (!x.decision) return '';
+    else if (x.result_status === 'posted_verified') { const u = safeUrl(x.live_url); s = 'Posted' + (u ? ' (<a href="' + u + '" target="_blank" rel="noopener noreferrer" style="color:inherit">view</a>)' : ''); }
+    else if (x.result_status === 'posted_unverified') s = 'Posted, not verified';
+    else if (x.result_status === 'skipped') s = 'Not posted' + (x.result_reason ? ': ' + esc(x.result_reason) : '');
+    else s = 'Waiting';
+    return '<div class="stline">' + esc(platL(x.platform) + ' ' + actL(x.action).toLowerCase() + ' · ' + x.target_handle) + ' — ' + (x.decision === 'skip' ? esc(s) : s) + '</div>';
+  }).join('') : '';
+  return '<div class="rec"><div class="t">' + esc(b.label) + ' · ' + esc(b.count) + ' actions</div><div class="m">' + chip('pheme') + bizTag('social') + '<span class="pill ' + cls + '">' + esc(L[b.status] || b.status) + '</span>' + (b.approved > 0 ? '<span>' + esc(b.posted) + '/' + esc(b.approved) + ' posted</span>' : '') + '</div>' + (b.note ? '<div class="q-sub">“' + esc(b.note) + '”</div>' : '') + (b.ack_note ? '<div class="stline">' + esc(b.ack_note) + '</div>' : '') + lines + '</div>';
+}
 function decisionText(r) {
   const d = r.decision; if (d === 'approve') return 'Approved'; if (d === 'changes') return 'Changes requested'; if (d === 'dismiss') return 'Dismissed'; if (d === 'other') return 'Your answer';
   if (String(d).indexOf('option:') === 0) { const o = (r.options || []).find(x => 'option:' + x.id === d); return o ? o.label : 'Chosen'; } return d;
@@ -126,7 +202,7 @@ function histRow(r) {
 }
 function counts() {
   const c = { all: 0 }; const add = b => { b = b || 'rvltn'; c[b] = (c[b] || 0) + 1; c.all++; };
-  (D.items || []).filter(i => !HIDDEN.has(ikey(i))).forEach(i => add(i.business)); (D.batches || []).filter(b => !HIDDEN.has('b:' + b.batch_id)).forEach(b => add(b.business));
+  (D.items || []).filter(i => !HIDDEN.has(ikey(i))).forEach(i => add(i.business)); (D.batches || []).filter(b => !HIDDEN.has('b:' + b.batch_id)).forEach(b => add(b.business)); (D.social_batches || []).filter(b => !HIDDEN.has('s:' + b.batch_id)).forEach(b => add('social'));
   return c;
 }
 function renderChips() {
@@ -153,7 +229,7 @@ function renderAll() {
     $('#subtitle').textContent = n ? n + (n === 1 ? ' thing is' : ' things are') + ' waiting on you' + (BF !== 'all' ? ' in ' + BIZ[BF].name : '') : 'Nothing waiting';
     if (CARDS.length) {
       h += '<div class="hint touch">Swipe right to approve, left to request changes.</div><div class="hint keys">J / K move · A approve · C changes · 1–4 options · E expand · U undo</div>';
-      h += CARDS.map(c => c.type === 'group' ? renderGroup(c) : c.type === 'batch' ? renderBatch(c) : renderItem(c)).join('');
+      h += CARDS.map(c => c.type === 'group' ? renderGroup(c) : c.type === 'batch' ? renderBatch(c) : c.type === 'social' ? renderSocial(c) : renderItem(c)).join('');
     } else {
       const nx = D.next_scheduled;
       h += '<div class="empty"><h2>' + (BF === 'all' ? 'You’re all caught up' : 'Nothing waiting here') + '</h2><p>' + (BF !== 'all' ? 'No open items for ' + esc(BIZ[BF].name) + '.' : nx ? 'Next up: ' + esc(nx.label) + ' · ' + esc(nx.source === 'talos' ? 'Schedule' : botName(nx.source)) + ', ' + esc(new Date(nx.at).toLocaleString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' })) : 'Nothing is scheduled yet.') + '</p></div>';
@@ -161,9 +237,12 @@ function renderAll() {
     const rec = (D.recent || []).filter(r => inBF(r) && !HIDDEN.has('w:' + r.source + ':' + r.week_of + ':' + r.item_id));
     const mine = PEND.map(p => '<div class="rec"><div class="t">' + esc(p.label) + '</div><div class="m"><span class="pill">Sending in a moment — Undo</span></div></div>').join('');
     if (rec.length || mine) h += '<div class="sec">In progress</div>' + mine + rec.map(histRow).join('');
+    const srec = (D.social_recent || []).filter(x => BF === 'all' || BF === 'social');
+    if (srec.length) h += '<div class="sec">Social batches · last 14 days</div>' + srec.map(socRecent).join('');
   }
   const active = document.activeElement && document.activeElement.matches && document.activeElement.matches('input[data-note]') ? document.activeElement.value : null;
   $('#root').innerHTML = h;
+  if (SEDIT) { const ta = document.querySelector('textarea[data-sedit="' + CSS.escape(SEDIT) + '"]'); if (ta) ta.focus(); }
   if (NOTE) { const inp = document.querySelector('input[data-note="' + CSS.escape(NOTE.key) + '"]'); if (inp) { if (active != null) inp.value = active; inp.focus(); } }
 }
 async function load() {
@@ -206,6 +285,7 @@ function batchDecide(b, action) {
 function openNote(key, mode) { NOTE = { key, mode }; renderAll(); }
 function act(a, key, el) {
   const card = CARDS.find(c => c.key === key);
+  if (a.indexOf('soc-') === 0) return socAct(a, key, el, card);
   if (a === 'approve-group') return approveGroup(card);
   if (a === 'expand') { EXPANDED[key] = !EXPANDED[key]; return renderAll(); }
   if (a === 'approve-batch') { if (!EXPANDED[key]) return toast('Open the emails first so you can read them.'); return batchDecide(card.batch, 'approve'); }
@@ -236,6 +316,7 @@ document.addEventListener('click', e => {
   const f = e.target.closest('[data-bf]'); if (f) { BF = f.dataset.bf; FOCUS = null; NOTE = null; try { history.replaceState(null, '', BF === 'all' ? 'needs.html' : 'needs.html?b=' + BF); } catch (x) {} renderAll(); return; }
   const b = e.target.closest('[data-act]'); if (b && !b.disabled) act(b.dataset.act, b.dataset.key, b);
 });
+document.addEventListener('input', e => { const t = e.target; if (!t.matches) return; if (t.matches('textarea[data-sedit]')) { const p = t.dataset.sedit.split('|'); (SOC[p[0]] = SOC[p[0]] || {})[p[1]] = { d:'edit', text:t.value }; } else if (t.matches('input[data-socnote]')) SOCNOTE[t.dataset.socnote] = t.value; });
 $('#undoBtn').addEventListener('click', undo);
 
 /* ---- swipe ---- */
@@ -257,7 +338,7 @@ document.addEventListener('pointerup', endSwipe); document.addEventListener('poi
 
 /* ---- keyboard ---- */
 document.addEventListener('keydown', e => {
-  if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Escape') { NOTE = null; renderAll(); } else if (e.key === 'Enter') { const b = e.target.closest('.note').querySelector('[data-act="note-send"]'); if (b) b.click(); } return; }
+  if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Escape') { NOTE = null; renderAll(); } else if (e.key === 'Enter') { const nb = e.target.closest('.note'), b = nb && nb.querySelector('[data-act="note-send"]'); if (b) b.click(); } return; }
   if (e.metaKey || e.ctrlKey || e.altKey || !D) return;
   const k = e.key.toLowerCase(); let idx = CARDS.findIndex(c => c.key === FOCUS); const c = CARDS[idx];
   if (k === 'j' || k === 'k') { idx = Math.max(0, Math.min(CARDS.length - 1, idx + (k === 'j' ? 1 : -1))); FOCUS = CARDS[idx] && CARDS[idx].key; renderAll(); const el = document.querySelector('.q.focus'); if (el) el.scrollIntoView({ block:'center', behavior:'smooth' }); return; }
@@ -266,6 +347,7 @@ document.addEventListener('keydown', e => {
   if (k === 'e' && c.type !== 'item') return act('expand', c.key);
   if (c.type === 'group') { if (k === 'a') approveGroup(c); return; }
   if (c.type === 'batch') { if (k === 'a') act('approve-batch', c.key); return; }
+  if (c.type === 'social') return;
   const it = c.item;
   if (k === 'a' && it.kind === 'approve') act('approve', c.key);
   else if (k === 'c' && it.kind === 'approve') act('changes', c.key);
@@ -274,7 +356,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'o' && it.kind === 'decide') act('other', c.key);
 });
 window.addEventListener('pagehide', () => { PEND.slice().forEach(p => { clearTimeout(p.t); p.run().catch(() => {}); }); PEND = []; });
-setInterval(() => { const a = document.activeElement; if (!document.hidden && !PEND.length && !(a && a.matches && a.matches('input'))) load(); }, 30000);
+setInterval(() => { const a = document.activeElement; if (!document.hidden && !PEND.length && !(a && a.matches && a.matches('input,textarea'))) load(); }, 30000);
 load();
 </script>
 </body>
