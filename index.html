@@ -937,7 +937,7 @@ function showTravelFeeLog() {
     </div>
     ${log.length ? log.map(t => `
       <div class="revenue-row">
-        <div class="revenue-label">${t.clientName} <span style="opacity:0.6;font-size:11px;">(${t.date})</span></div>
+        <div class="revenue-label">${t.clientName === 'Unknown' ? 'Travel fee' : t.clientName} <span style="opacity:0.6;font-size:11px;">(${t.date})</span></div>
         <div class="revenue-amount">${fmt(t.amount)}</div>
       </div>
     `).join('') : '<div class="revenue-note">No travel fees logged yet.</div>'}
