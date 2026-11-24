@@ -1184,6 +1184,8 @@ let conversationHistory = [];
 try {
   const saved = localStorage.getItem('jarvisConversationHistory');
   if (saved) conversationHistory = JSON.parse(saved);
+  const lastAct = Number(localStorage.getItem('jarvisConversationLastActivity') || 0);
+  if (lastAct && Date.now() - lastAct > 6 * 3600 * 1000) { conversationHistory = []; localStorage.removeItem('jarvisConversationHistory'); }
 } catch (e) { conversationHistory = []; }
 
 function saveConversationHistory() {
@@ -1191,6 +1193,7 @@ function saveConversationHistory() {
     // Cap history length to avoid unbounded growth — keep the most recent 40 turns
     if (conversationHistory.length > 40) conversationHistory = conversationHistory.slice(-40);
     localStorage.setItem('jarvisConversationHistory', JSON.stringify(conversationHistory));
+    localStorage.setItem('jarvisConversationLastActivity', String(Date.now()));
   } catch (e) {}
 }
 
@@ -1238,11 +1241,12 @@ async function handleChatSend() {
   addChatMessage('user', text);
   showChatTyping();
 
+  if (conversationHistory.length && conversationHistory[conversationHistory.length - 1].role === 'user') conversationHistory.push({ role: 'assistant', content: '(No reply was received for my previous message.)' });
   conversationHistory.push({ role: 'user', content: text });
   saveConversationHistory();
 
   const ctl = new AbortController();
-  const killTimer = setTimeout(() => ctl.abort(), 75000);
+  const killTimer = setTimeout(() => ctl.abort(), 150000);
   try {
     // Send only the recent turns (older ones slow every step and add nothing); must start on a user message
     const recent = conversationHistory.slice(-16);
@@ -1274,7 +1278,7 @@ async function handleChatSend() {
     clearTimeout(killTimer);
     hideChatTyping();
     addChatMessage('assistant', err.name === 'AbortError'
-      ? "Talos took more than 75 seconds and I stopped waiting. It may still have finished. Check before you retry so nothing gets entered twice."
+      ? "Talos took more than 2.5 minutes and I stopped waiting. It may still have finished. Check before you retry so nothing gets entered twice."
       : "Couldn't reach Talos: " + err.message);
   }
 
