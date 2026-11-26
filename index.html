@@ -596,6 +596,7 @@ async function loadDashboard() {
                 <button class="focus-btn done" onclick="selectDraft(this)">Select Text</button>
                 ${item.actionType === 'recovery_reachout' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('recovery_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>`) : ''}
                 ${item.actionType === 'session_confirmation' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('session_confirmation_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('session_confirmation_done', '${item.id}', this)">Sent</button>`) : ''}
+                ${item.actionType === 'holiday_text' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('holiday_text_done', '${item.id}', this)">Send Text</button>` : '') : ''}
                 ${item.actionType === 'day_after_checkin' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('day_after_checkin_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('day_after_checkin_done', '${item.id}', this)">Sent</button>`) : ''}
                 <button class="focus-btn snooze" onclick="handleAction('${snoozeActionFor(item.actionType)}', '${item.id}', this)">Snooze</button>
               </div>
@@ -666,6 +667,7 @@ function snoozeActionFor(actionType) {
   if (actionType === 'session') return 'session_snooze';
   if (actionType === 'session_confirmation') return 'session_confirmation_snooze';
   if (actionType === 'day_after_checkin') return 'day_after_checkin_snooze';
+  if (actionType === 'holiday_text') return 'holiday_text_snooze';
   return 'renewal_snooze';
 }
 
