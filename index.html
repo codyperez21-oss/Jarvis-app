@@ -424,7 +424,7 @@ async function handleAction(action, id, btnEl) {
 }
 
 async function handleSendText(doneAction, itemId, btnEl) {
-  const item = (window.currentFocusItems || []).find(i => i.id === itemId);
+  const item = (window.currentFocusItems || []).find(i => i.id === itemId && i.phone && i.draftMessage);
   if (!item || !item.phone || !item.draftMessage) { alert('Missing phone or message for this item.'); return; }
   const card = btnEl.closest('.focus-card');
   card.querySelectorAll('.focus-btn').forEach(b => b.disabled = true);
