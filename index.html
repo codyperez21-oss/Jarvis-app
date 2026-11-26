@@ -423,9 +423,25 @@ async function handleAction(action, id, btnEl) {
   }
 }
 
+const USE_SMS_LINK = true; // true: open prefilled Messages (sent from the phone itself). false: old gateway auto-send.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !window.__pendingSms) return;
+  const p = window.__pendingSms; window.__pendingSms = null;
+  setTimeout(() => {
+    if (confirm('Did you send the text to ' + (p.name || 'this client') + '?')) handleAction(p.doneAction, p.itemId, p.btnEl);
+  }, 400);
+});
 async function handleSendText(doneAction, itemId, btnEl) {
   const item = (window.currentFocusItems || []).find(i => i.id === itemId && i.phone && i.draftMessage);
   if (!item || !item.phone || !item.draftMessage) { alert('Missing phone or message for this item.'); return; }
+  if (USE_SMS_LINK) {
+    const digits = String(item.phone).replace(/\D/g, '');
+    const num = (digits.length === 10 ? '+1' : '+') + digits;
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    window.__pendingSms = { doneAction, itemId, btnEl, name: item.clientName };
+    window.location.href = 'sms:' + num + (isIOS ? '&' : '?') + 'body=' + encodeURIComponent(item.draftMessage);
+    return;
+  }
   const card = btnEl.closest('.focus-card');
   card.querySelectorAll('.focus-btn').forEach(b => b.disabled = true);
   btnEl.textContent = 'Sending\u2026';
@@ -594,10 +610,10 @@ async function loadDashboard() {
               <textarea class="draft-message-input" rows="3" readonly onclick="this.select()">${item.draftMessage}</textarea>
               <div class="focus-actions">
                 <button class="focus-btn done" onclick="selectDraft(this)">Select Text</button>
-                ${item.actionType === 'recovery_reachout' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('recovery_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>`) : ''}
-                ${item.actionType === 'session_confirmation' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('session_confirmation_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('session_confirmation_done', '${item.id}', this)">Sent</button>`) : ''}
+                ${item.actionType === 'recovery_reachout' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('recovery_done', '${item.id}', this)">Open in Messages</button>` : `<button class="focus-btn done" onclick="handleAction('recovery_done', '${item.id}', this)">Done</button>`) : ''}
+                ${item.actionType === 'session_confirmation' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('session_confirmation_done', '${item.id}', this)">Open in Messages</button>` : `<button class="focus-btn done" onclick="handleAction('session_confirmation_done', '${item.id}', this)">Sent</button>`) : ''}
                 ${item.actionType === 'holiday_text' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('holiday_text_done', '${item.id}', this)">Send Text</button>` : '') : ''}
-                ${item.actionType === 'day_after_checkin' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('day_after_checkin_done', '${item.id}', this)">Send Text</button>` : `<button class="focus-btn done" onclick="handleAction('day_after_checkin_done', '${item.id}', this)">Sent</button>`) : ''}
+                ${item.actionType === 'day_after_checkin' ? (item.phone ? `<button class="focus-btn done" onclick="handleSendText('day_after_checkin_done', '${item.id}', this)">Open in Messages</button>` : `<button class="focus-btn done" onclick="handleAction('day_after_checkin_done', '${item.id}', this)">Sent</button>`) : ''}
                 <button class="focus-btn snooze" onclick="handleAction('${snoozeActionFor(item.actionType)}', '${item.id}', this)">Snooze</button>
               </div>
             ` : `
